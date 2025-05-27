@@ -71,6 +71,7 @@
       </el-table-column>
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
+          <el-button type="primary" size="small" @click="openConvertDialog(scope.row)">order</el-button>
           <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['order:quote:edit']">修改</el-button>
           <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['order:quote:remove']">删除</el-button>
         </template>
@@ -84,6 +85,33 @@
       v-model:limit="queryParams.pageSize"
       @pagination="getList"
     />
+
+
+    <el-dialog
+  v-model="convertDialogVisible"
+  title="make a order"
+  width="600px"
+>
+  <el-form :model="orderForm" label-width="120px">
+    <el-form-item label="customer po">
+      <el-input v-model="orderForm.customerPo" disabled />
+    </el-form-item>
+    <el-form-item label="recipient">
+      <el-input v-model="orderForm.deliveryName" placeholder="请输入收货人姓名" />
+    </el-form-item>
+    <el-form-item label="deliverry address">
+      <el-input v-model="orderForm.deliveryAddress" placeholder="请输入收货地址" />
+    </el-form-item>
+    <el-form-item label="note">
+      <el-input type="textarea" v-model="orderForm.note" placeholder="请输入备注（可选）" />
+    </el-form-item>
+  </el-form>
+
+  <template #footer>
+    <el-button @click="convertDialogVisible = false">取消</el-button>
+    <el-button type="primary" @click="confirmConvert">确认转换</el-button>
+  </template>
+</el-dialog>
 
     <!-- 添加或修改报价对话框 -->
     <el-dialog :title="title" v-model="open" width="500px" append-to-body>
@@ -113,7 +141,7 @@
 
 <script setup name="Quote">
 import { listQuote, getQuote, delQuote, addQuote, updateQuote } from "@/api/order/quote";
-
+import { addOrders } from '@/api/order/orders';
 
 
 
@@ -203,6 +231,41 @@ function handleAdd() {
   open.value = true;
   title.value = "添加报价";
 }
+
+
+const convertDialogVisible = ref(false);
+
+const orderForm = reactive({
+  quoteId: null,
+  customerPo: '',
+  deliveryName: '',
+  deliveryAddress: '',
+  note: ''
+});
+
+const openConvertDialog = (quote) => {
+  console.log(quote);
+
+  // 自动带入 customer_po
+  orderForm.quoteId = quote.id;
+  orderForm.customerPo = quote.customerPo;
+  orderForm.deliveryName = '';
+  orderForm.deliveryAddress = '';
+  orderForm.note = '';
+  convertDialogVisible.value = true;
+};
+
+/** quote转为order操作 */
+const confirmConvert = () => {
+  if (!orderForm.deliveryName || !orderForm.deliveryAddress) {
+    ElMessage.error('please fill in the recipient and delivery address');
+    return;
+  }
+  addOrders(orderForm).then(() => {
+    convertDialogVisible.value = false;
+  });
+};
+
 
 /** 修改按钮操作 */
 function handleUpdate(row) {

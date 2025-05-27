@@ -266,6 +266,8 @@
           <pre>{{ localJsonData.Accessories }}</pre>
         </div>
 
+        <canvas ref="canvas" :width="500" :height="400" style="border: 1px solid #ccc;"></canvas>
+
         <template #footer>
           <el-button @click="onClose">取消</el-button>
           <el-button type="primary" @click="onSave">保存</el-button>
@@ -589,5 +591,77 @@ function formatSupplierName(row) {
   return sp ? sp.name : '';
 }
 
+
 getList();
+
+
+const canvas = ref(null);
+
+const drawBox = () => {
+  const ctx = canvas.value?.getContext('2d');
+  if (!ctx) return;
+  const { width, height, depth } = localJsonData.value.box;
+
+  // 清空
+  ctx.clearRect(0, 0, canvas.value.width, canvas.value.height);
+  ctx.strokeStyle = '#333';
+    const scale = 5;
+  ctx.lineWidth = 0.75 * scale;
+
+  const x = 100;
+  const y = 100;
+
+  const w = width * scale;
+  const h = height * scale;
+  const d = depth * scale * 0.5; // 斜角表示深度
+
+  // 正面矩形
+  ctx.strokeRect(x, y, w, h);
+  ctx.font = "12px sans-serif";
+  ctx.fillStyle = "#000";
+  ctx.textAlign = "center";
+
+  // 标记宽度
+  ctx.beginPath();
+  ctx.moveTo(x, y + h + 10);
+  ctx.lineTo(x + w, y + h + 10);
+ 
+  ctx.fillText(`${width}"`, x + w / 2, y + h + 24);
+
+  // 标记高度
+  ctx.beginPath();
+  ctx.moveTo(x - 10, y);
+  ctx.lineTo(x - 10, y + h);
+
+  ctx.fillText(`${height}"`, x - 24, y + h / 2 + 4);
+
+  // 深度线条
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x + d, y - d);
+  ctx.lineTo(x + d + w, y - d);
+  ctx.lineTo(x + w, y);
+  ctx.moveTo(x + w, y + h);
+  ctx.lineTo(x + w + d, y + h - d);
+  ctx.lineTo(x + w + d, y + h - d - h);
+  ctx.lineTo(x + w, y);
+  ctx.stroke();
+
+  // 标记深度
+  ctx.beginPath();
+  ctx.moveTo(x + w + 10, y + h);
+  ctx.lineTo(x + w + d + 10, y + h - d);
+  ctx.fillText(`${depth}"`, x + w + d / 2 + 10, y + h - d / 2 + 4);
+};
+
+
+// 动态监听尺寸变化
+watch(() => localJsonData.value.box, () => {
+  nextTick(() => drawBox());
+}, { deep: true });
+
+onMounted(() => {
+  nextTick(drawBox);
+});
+
 </script>

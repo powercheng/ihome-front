@@ -1,59 +1,13 @@
 <template>
   <div class="app-container">
-    <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="100px">
-      <el-form-item label="customer_name" prop="customerName">
+    <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
+      <el-form-item label="customer po" prop="customerPo">
         <el-input
-          v-model="queryParams.customerName"
-          placeholder="请输入customer_name"
+          v-model="queryParams.customerPo"
+          placeholder="请输入customer po"
           clearable
           @keyup.enter="handleQuery"
         />
-      </el-form-item>
-      <el-form-item label="customer_phone" prop="customerPhone">
-        <el-input
-          v-model="queryParams.customerPhone"
-          placeholder="请输入customer_phone"
-          clearable
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item label="current_status" prop="currentStatus" >
-        <el-select v-model="queryParams.currentStatus" placeholder="请选择current_status" clearable style="width: 150px">
-          <el-option
-            v-for="dict in order_status"
-            :key="dict.value"
-            :label="dict.label"
-            :value="dict.value"
-          />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="is_delivery" prop="isDelivery">
-        <el-select v-model="queryParams.isDelivery" placeholder="请选择is_delivery" clearable style="width: 100px">
-          <el-option
-            v-for="dict in is_delivery"
-            :key="dict.value"
-            :label="dict.label"
-            :value="dict.value"
-          />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="is_install" prop="isInstall">
-        <el-select v-model="queryParams.isInstall" placeholder="请选择is_install" clearable style="width: 100px">
-          <el-option
-            v-for="dict in is_install"
-            :key="dict.value"
-            :label="dict.label"
-            :value="dict.value"
-          />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="create_date" prop="createDate">
-        <el-date-picker clearable
-          v-model="queryParams.createDate"
-          type="date"
-          value-format="YYYY-MM-DD"
-          placeholder="请选择create_date">
-        </el-date-picker>
       </el-form-item>
       <el-form-item>
         <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
@@ -68,7 +22,7 @@
           plain
           icon="Plus"
           @click="handleAdd"
-          v-hasPermi="['order:order:add']"
+          v-hasPermi="['order:orders:add']"
         >新增</el-button>
       </el-col>
       <el-col :span="1.5">
@@ -78,7 +32,7 @@
           icon="Edit"
           :disabled="single"
           @click="handleUpdate"
-          v-hasPermi="['order:order:edit']"
+          v-hasPermi="['order:orders:edit']"
         >修改</el-button>
       </el-col>
       <el-col :span="1.5">
@@ -88,7 +42,7 @@
           icon="Delete"
           :disabled="multiple"
           @click="handleDelete"
-          v-hasPermi="['order:order:remove']"
+          v-hasPermi="['order:orders:remove']"
         >删除</el-button>
       </el-col>
       <el-col :span="1.5">
@@ -97,48 +51,45 @@
           plain
           icon="Download"
           @click="handleExport"
-          v-hasPermi="['order:order:export']"
+          v-hasPermi="['order:orders:export']"
         >导出</el-button>
       </el-col>
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
 
-    <el-table v-loading="loading" :data="orderList" @selection-change="handleSelectionChange">
+    <el-table v-loading="loading" :data="ordersList" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="id" align="center" prop="id" />
-      <el-table-column label="customer_name" align="center" prop="customerName" />
-      <el-table-column label="customer_phone" align="center" prop="customerPhone" />
-      <el-table-column label="customer_address" align="center" prop="customerAddress" />
-      <el-table-column label="order_amount" align="center" prop="orderAmount" />
-      <el-table-column label="delivery_date" align="center" prop="deliveryDate" width="180">
+      <el-table-column label="order no" align="center" prop="id" />
+      <el-table-column label="quote no" align="center" prop="quoteId" />
+      <el-table-column label="customer po" align="center" prop="customerPo" />
+      <el-table-column label="recipient" align="center" prop="deliveryName" />
+      <el-table-column label="delivery address" align="center" prop="deliveryAddress" />
+      <el-table-column label="estimated ship date" align="center" prop="estimatedShipDate">
         <template #default="scope">
-          <span>{{ parseTime(scope.row.deliveryDate, '{y}-{m}-{d}') }}</span>
+          <span>{{ parseTime(scope.row.estimatedShipDate, '{y}-{m}-{d}') }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="current_status" align="center" prop="currentStatus">
+      <el-table-column label="ship date" align="center" prop="shipDate">
         <template #default="scope">
-          <dict-tag :options="order_status" :value="scope.row.currentStatus"/>
+          <span>{{ parseTime(scope.row.shipDate, '{y}-{m}-{d}') }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="is_delivery" align="center" prop="isDelivery">
+      <el-table-column label="status" align="center" prop="status">
         <template #default="scope">
-          <dict-tag :options="is_delivery" :value="scope.row.isDelivery"/>
+          <dict-tag :options="order_status" :value="scope.row.status"/>
         </template>
       </el-table-column>
-      <el-table-column label="is_install" align="center" prop="isInstall">
+      <el-table-column label="note" align="center" prop="note" />
+      <el-table-column label="created by" align="center" prop="createBy" />
+      <el-table-column label="order date" align="center" prop="createTime">
         <template #default="scope">
-          <dict-tag :options="is_install" :value="scope.row.isInstall"/>
-        </template>
-      </el-table-column>
-      <el-table-column label="create_date" align="center" prop="createDate" width="180">
-        <template #default="scope">
-          <span>{{ parseTime(scope.row.createDate, '{y}-{m}-{d}') }}</span>
+          <span>{{ parseTime(scope.row.createTime, '{y}-{m}-{d}') }}</span>
         </template>
       </el-table-column>
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
-          <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['order:order:edit']">修改</el-button>
-          <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['order:order:remove']">删除</el-button>
+          <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['order:orders:edit']">修改</el-button>
+          <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['order:orders:remove']">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -151,69 +102,48 @@
       @pagination="getList"
     />
 
-    <!-- 添加或修改order对话框 -->
+    <!-- 添加或修改orders对话框 -->
     <el-dialog :title="title" v-model="open" width="500px" append-to-body>
-      <el-form ref="orderRef" :model="form" :rules="rules" label-width="80px">
-        <el-form-item label="estimate_id" prop="estimateId">
-          <el-input v-model="form.estimateId" placeholder="请输入estimate_id" />
+      <el-form ref="ordersRef" :model="form" :rules="rules" label-width="80px">
+        <el-form-item label="quote_no" prop="quoteId">
+          <el-input v-model="form.quoteId" placeholder="请输入quote_no" />
         </el-form-item>
-        <el-form-item label="customer_name" prop="customerName">
-          <el-input v-model="form.customerName" placeholder="请输入customer_name" />
+        <el-form-item label="customer po" prop="customerPo">
+          <el-input v-model="form.customerPo" placeholder="请输入customer po" />
         </el-form-item>
-        <el-form-item label="customer_phone" prop="customerPhone">
-          <el-input v-model="form.customerPhone" placeholder="请输入customer_phone" />
+        <el-form-item label="recipient" prop="deliveryName">
+          <el-input v-model="form.deliveryName" placeholder="请输入recipient" />
         </el-form-item>
-        <el-form-item label="customer_address" prop="customerAddress">
-          <el-input v-model="form.customerAddress" placeholder="请输入customer_address" />
+        <el-form-item label="delivery address" prop="deliveryAddress">
+          <el-input v-model="form.deliveryAddress" placeholder="请输入delivery address" />
         </el-form-item>
-        <el-form-item label="order_amount" prop="orderAmount">
-          <el-input v-model="form.orderAmount" placeholder="请输入order_amount" />
-        </el-form-item>
-        <el-form-item label="delivery_date" prop="deliveryDate">
+        <el-form-item label="estimated ship date" prop="estimatedShipDate">
           <el-date-picker clearable
-            v-model="form.deliveryDate"
+            v-model="form.estimatedShipDate"
             type="date"
             value-format="YYYY-MM-DD"
-            placeholder="请选择delivery_date">
+            placeholder="请选择estimated ship date">
           </el-date-picker>
         </el-form-item>
-        <el-form-item label="current_status" prop="currentStatus">
-          <el-select v-model="form.currentStatus" placeholder="请选择current_status">
-            <el-option
+        <el-form-item label="ship date" prop="shipDate">
+          <el-date-picker clearable
+            v-model="form.shipDate"
+            type="date"
+            value-format="YYYY-MM-DD"
+            placeholder="请选择ship date">
+          </el-date-picker>
+        </el-form-item>
+        <el-form-item label="status" prop="status">
+          <el-radio-group v-model="form.status">
+            <el-radio
               v-for="dict in order_status"
               :key="dict.value"
-              :label="dict.label"
-              :value="parseInt(dict.value)"
-            ></el-option>
-          </el-select>
+              :label="dict.value"
+            >{{dict.label}}</el-radio>
+          </el-radio-group>
         </el-form-item>
-        <el-form-item label="is_delivery" prop="isDelivery">
-          <el-select v-model="form.isDelivery" placeholder="请选择is_delivery">
-            <el-option
-              v-for="dict in is_delivery"
-              :key="dict.value"
-              :label="dict.label"
-              :value="parseInt(dict.value)"
-            ></el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item label="is_install" prop="isInstall">
-          <el-select v-model="form.isInstall" placeholder="请选择is_install">
-            <el-option
-              v-for="dict in is_install"
-              :key="dict.value"
-              :label="dict.label"
-              :value="parseInt(dict.value)"
-            ></el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item label="create_date" prop="createDate">
-          <el-date-picker clearable
-            v-model="form.createDate"
-            type="date"
-            value-format="YYYY-MM-DD"
-            placeholder="请选择create_date">
-          </el-date-picker>
+        <el-form-item label="note" prop="note">
+          <el-input v-model="form.note" type="textarea" placeholder="请输入内容" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -226,13 +156,13 @@
   </div>
 </template>
 
-<script setup name="Order">
-import { listOrder, getOrder, delOrder, addOrder, updateOrder } from "@/api/order/order";
+<script setup name="Orders">
+import { listOrders, getOrders, delOrders, addOrders, updateOrders } from "@/api/order/orders";
 
 const { proxy } = getCurrentInstance();
-const { order_status, is_delivery, is_install } = proxy.useDict('order_status', 'is_delivery', 'is_install');
+const { order_status } = proxy.useDict('order_status');
 
-const orderList = ref([]);
+const ordersList = ref([]);
 const open = ref(false);
 const loading = ref(true);
 const showSearch = ref(true);
@@ -247,24 +177,29 @@ const data = reactive({
   queryParams: {
     pageNum: 1,
     pageSize: 10,
-    customerName: null,
-    customerPhone: null,
-    currentStatus: null,
-    isDelivery: null,
-    isInstall: null,
-    createDate: null
+    quoteId: null,
+    customerPo: null,
+    deliveryName: null,
+    deliveryAddress: null,
+    estimatedShipDate: null,
+    shipDate: null,
+    status: null,
+    note: null,
   },
   rules: {
+    customerPo: [
+      { required: true, message: "customer po不能为空", trigger: "blur" }
+    ],
   }
 });
 
 const { queryParams, form, rules } = toRefs(data);
 
-/** 查询order列表 */
+/** 查询orders列表 */
 function getList() {
   loading.value = true;
-  listOrder(queryParams.value).then(response => {
-    orderList.value = response.rows;
+  listOrders(queryParams.value).then(response => {
+    ordersList.value = response.rows;
     total.value = response.total;
     loading.value = false;
   });
@@ -280,18 +215,20 @@ function cancel() {
 function reset() {
   form.value = {
     id: null,
-    estimateId: null,
-    customerName: null,
-    customerPhone: null,
-    customerAddress: null,
-    orderAmount: null,
-    deliveryDate: null,
-    currentStatus: null,
-    isDelivery: null,
-    isInstall: null,
-    createDate: null
+    quoteId: null,
+    customerPo: null,
+    deliveryName: null,
+    deliveryAddress: null,
+    estimatedShipDate: null,
+    shipDate: null,
+    status: null,
+    note: null,
+    createBy: null,
+    createTime: null,
+    updateBy: null,
+    updateTime: null
   };
-  proxy.resetForm("orderRef");
+  proxy.resetForm("ordersRef");
 }
 
 /** 搜索按钮操作 */
@@ -317,32 +254,32 @@ function handleSelectionChange(selection) {
 function handleAdd() {
   reset();
   open.value = true;
-  title.value = "添加order";
+  title.value = "添加orders";
 }
 
 /** 修改按钮操作 */
 function handleUpdate(row) {
   reset();
   const _id = row.id || ids.value
-  getOrder(_id).then(response => {
+  getOrders(_id).then(response => {
     form.value = response.data;
     open.value = true;
-    title.value = "修改order";
+    title.value = "修改orders";
   });
 }
 
 /** 提交按钮 */
 function submitForm() {
-  proxy.$refs["orderRef"].validate(valid => {
+  proxy.$refs["ordersRef"].validate(valid => {
     if (valid) {
       if (form.value.id != null) {
-        updateOrder(form.value).then(response => {
+        updateOrders(form.value).then(response => {
           proxy.$modal.msgSuccess("修改成功");
           open.value = false;
           getList();
         });
       } else {
-        addOrder(form.value).then(response => {
+        addOrders(form.value).then(response => {
           proxy.$modal.msgSuccess("新增成功");
           open.value = false;
           getList();
@@ -355,8 +292,8 @@ function submitForm() {
 /** 删除按钮操作 */
 function handleDelete(row) {
   const _ids = row.id || ids.value;
-  proxy.$modal.confirm('是否确认删除order编号为"' + _ids + '"的数据项？').then(function() {
-    return delOrder(_ids);
+  proxy.$modal.confirm('是否确认删除orders编号为"' + _ids + '"的数据项？').then(function() {
+    return delOrders(_ids);
   }).then(() => {
     getList();
     proxy.$modal.msgSuccess("删除成功");
@@ -365,29 +302,10 @@ function handleDelete(row) {
 
 /** 导出按钮操作 */
 function handleExport() {
-  proxy.download('order/order/export', {
+  proxy.download('order/orders/export', {
     ...queryParams.value
-  }, `order_${new Date().getTime()}.xlsx`)
+  }, `orders_${new Date().getTime()}.xlsx`)
 }
 
 getList();
-
-
-
-
-watch(() => proxy.$route, (newVal, oldVal) => {
-    console.log(newVal);
-    if (newVal.path === '/order/orders' && !open.value) {
-        console.log('从其他页面跳转到了目标页面');
-        if (Object.keys(newVal.query).length > 0) {
-            console.log('路由参数：', newVal.query);
-
-            form.value.estimateId = newVal.query.estimateId;
-            form.value.customerName = newVal.query.customerName;
-            form.value.customerPhone = newVal.query.customerPhone;
-            open.value = true;
-            title.value = "修改estimate";
-        }
-    }
-}, { immediate: true });
 </script>
