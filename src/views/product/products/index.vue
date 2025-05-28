@@ -225,9 +225,14 @@
           <el-button type="success" icon="Plus" @click="addFace">add face section</el-button>
           <el-table :data="localJsonData.face" style="width: 100%" size="small"
             :header-cell-style="{ textAlign: 'center' }">
-            <el-table-column label="type">
+           <el-table-column label="type" width="150">
               <template #default="scope">
-                <el-input v-model="scope.row.type" />
+                <el-select v-model="scope.row.type" placeholder="请选择">
+                  <el-option label="single left door" value="single left door" />
+                  <el-option label="single right door" value="single right door" />
+                  <el-option label="double door" value="double door" />
+                  <el-option label="drawer" value="drawer" />
+                </el-select>
               </template>
             </el-table-column>
             <el-table-column label="width">
@@ -376,15 +381,29 @@ const recalculatePanels = () => {
 };
 
 const addShelf = () => {
-  localJsonData.value.box.shelves.push({
+  const box = localJsonData.value.box;
+  const shelfCount = box.shelves.length + 1;
+  const shelfThickness = 0.75;
+  const totalGap = box.height - shelfThickness * (2+shelfCount);
+  const gap = totalGap / (shelfCount + 1);
+
+  // 重新计算已有层板的 position
+  for (let i = 0; i < shelfCount - 1; i++) {
+    box.shelves[i].position = (shelfThickness + gap) * (i + 1);
+  }
+
+  // 新增的层板
+  const newShelf = {
     type: 'adjustable',
-    width: 0,
-    height: 0.75,
-    length: 0,
-    position: 0,
+    width: box.width || 0,
+    height: shelfThickness,
+    depth: box.depth || 0,
+    position: box.height - gap - 1.5,
     material: 'plywood',
     price: 0
-  });
+  };
+
+  box.shelves.push(newShelf);
 };
 
 const removeShelf = (index) => {
@@ -394,7 +413,7 @@ const removeShelf = (index) => {
 const addFace = () => {
   localJsonData.value.face.push({
     type: '',
-    width: 0,
+    width: localJsonData.value.box.width,
     height: 0,
     depth: 0,
     material: '',
@@ -597,6 +616,7 @@ getList();
 
 const canvas = ref(null);
 
+
 const drawBox = () => {
   const ctx = canvas.value?.getContext('2d');
   if (!ctx) return;
@@ -605,7 +625,7 @@ const drawBox = () => {
   // 清空
   ctx.clearRect(0, 0, canvas.value.width, canvas.value.height);
   ctx.strokeStyle = '#333';
-    const scale = 5;
+  const scale = 5;
   ctx.lineWidth = 0.75 * scale;
 
   const x = 100;
@@ -652,11 +672,86 @@ const drawBox = () => {
   ctx.moveTo(x + w + 10, y + h);
   ctx.lineTo(x + w + d + 10, y + h - d);
   ctx.fillText(`${depth}"`, x + w + d / 2 + 10, y + h - d / 2 + 4);
+
+    // 层板分布
+  const shelfCount = localJsonData.value.box.shelves.length;
+  if (shelfCount > 0) {
+    const shelfThickness = 0.75 * scale;
+    const availableHeight = h - 2 * shelfThickness;
+    const gap = availableHeight / (shelfCount + 1);
+
+    ctx.strokeStyle = '#1976d2';
+    ctx.fillStyle = '#1976d2';
+    ctx.font = '12px sans-serif';
+
+    for (let i = 1; i <= shelfCount; i++) {
+      const shelfY = y + shelfThickness + i * gap;
+      ctx.beginPath();
+      ctx.moveTo(x, shelfY);
+      ctx.lineTo(x + w, shelfY);
+      ctx.stroke();
+
+            // 斜线表示厚度
+      ctx.beginPath();
+      ctx.moveTo(x + w, shelfY);
+      ctx.lineTo(x + w + d, shelfY - d);
+      ctx.stroke();
+
+    }
+  }
+  // 画 face 区块（每一层门或抽屉）
+  let currentY = y;
+  const totalHeight = h;
+  const faces = localJsonData.value.face;
+  const totalUnitHeight = faces.reduce((sum, f) => sum + f.height, 0);
+
+  faces.forEach((face, index) => {
+    const heightRatio = face.height / totalUnitHeight;
+    const sectionHeight = heightRatio * totalHeight;
+
+    // 背景颜色
+    ctx.strokeStyle = '#4caf50';
+    ctx.fillStyle = face.type.includes('drawer') ? '#ffe0b2' : '#bbdefb';
+    ctx.fillRect(x, currentY, w, sectionHeight);
+    ctx.strokeRect(x, currentY, w, sectionHeight);
+
+
+
+    // 把手位置
+    ctx.beginPath();
+    ctx.strokeStyle = '#000';
+    if (face.type === 'drawer') {
+      // 抽屉把手在中间
+      ctx.moveTo(x + w / 2 - 10, currentY + sectionHeight / 2);
+      ctx.lineTo(x + w / 2 + 10, currentY + sectionHeight / 2);
+    } else if (face.type === 'single left door') {
+      // 把手在右边中间
+      ctx.moveTo(x + w - 10, currentY + sectionHeight / 2 - 10);
+      ctx.lineTo(x + w - 10, currentY + sectionHeight / 2 + 10);
+    } else if (face.type === 'single right door') {
+      // 把手在左边中间
+      ctx.moveTo(x + 10, currentY + sectionHeight / 2 - 10);
+      ctx.lineTo(x + 10, currentY + sectionHeight / 2 + 10);
+    } else if (face.type === 'double door') {
+      // 左右门把手
+  ctx.moveTo(x + w / 2 - 12, currentY + sectionHeight / 2 - 10);
+  ctx.lineTo(x + w / 2 - 12, currentY + sectionHeight / 2 + 10);
+  ctx.moveTo(x + w / 2 + 12, currentY + sectionHeight / 2 - 10);
+  ctx.lineTo(x + w / 2 + 12, currentY + sectionHeight / 2 + 10);
+
+  // 中间分隔线（门缝）
+  ctx.moveTo(x + w / 2, currentY);
+  ctx.lineTo(x + w / 2, currentY + sectionHeight);
+    }
+    ctx.stroke();
+
+    currentY += sectionHeight;
+  });
 };
 
 
 // 动态监听尺寸变化
-watch(() => localJsonData.value.box, () => {
+watch(() => localJsonData.value, () => {
   nextTick(() => drawBox());
 }, { deep: true });
 
