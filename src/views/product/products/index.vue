@@ -68,6 +68,7 @@
         <template #default="scope">
           <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
             v-hasPermi="['product:products:edit']">修改</el-button>
+          <el-button link type="success"  @click="openSplitDialog(scope.row)">拆单</el-button>
           <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)"
             v-hasPermi="['product:products:remove']">删除</el-button>
         </template>
@@ -76,6 +77,25 @@
 
     <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
       v-model:limit="queryParams.pageSize" @pagination="getList" />
+
+    <!-- 拆单弹窗 -->
+    <el-dialog v-model="splitDialogVisible" title="拆单标签预览" width="90%">
+      <div class="label-grid">
+        <div class="label-cell" v-for="(face, i) in currentRow.specification.face" :key="i">
+          <div class="label-head">{{ currentRow.code }} </div>
+          <div class="label-body">
+            <div class="label-info">
+              <div>{{ face.type }} {{ face.width }} x {{ face.height }}</div>
+              <div>material: {{ currentRow.specification.face[i].material }}</div>
+            </div>
+            <canvas :ref="el => faceCanvases[i] = el" :width="currentRow.width*3" :height="currentRow.height*3" class="mini-canvas"></canvas>
+          </div>
+        </div>
+      </div>
+    </el-dialog>
+
+
+
 
     <!-- 添加或修改products对话框 -->
     <el-dialog :title="title" v-model="open" width="500px" append-to-body>
@@ -323,7 +343,7 @@ const localJsonData = ref(JSON.parse(JSON.stringify(specification.value)));
 
 const openEditor = (row) => {
   currentRow.value = row;
-
+  console.log('openEditor', currentRow.value);
   const parsedSpec = typeof row.specification === 'string'
     ? JSON.parse(row.specification || '{}')
     : row.specification;
@@ -612,9 +632,95 @@ function formatSupplierName(row) {
 
 
 getList();
-
-
 const canvas = ref(null);
+
+
+const splitDialogVisible = ref(false);
+const faceCanvases = ref([]);
+const openSplitDialog = (row) => {
+  splitDialogVisible.value = true;
+  currentRow.value = row;
+  const parsedSpec = typeof row.specification === 'string'
+    ? JSON.parse(row.specification || '{}')
+    : row.specification;
+  currentRow.value.specification = parsedSpec;
+  console.log('openSplitDialog', currentRow);
+  nextTick(() => {
+    faceCanvases.value.forEach((canvas, i) => {
+      console.log('faceCanvases', faceCanvases.value, i, canvas);
+      if (!(canvas instanceof HTMLCanvasElement)) {
+        console.warn('Canvas at index ${i} is not a valid HTMLCanvasElement', canvas);
+        return;
+      }
+      console.log('Drawing face preview for canvas', i, canvas);
+      drawFacePreview(canvas, parsedSpec,i);
+    });
+  });
+};
+
+
+const drawFacePreview = (el, data,i) => {
+  if (!el) return;
+  const ctx = el.getContext('2d');
+
+  const w = data.box.width*3;
+  const h = data.box.height*3;
+  const x = 0;
+  const y = 0;
+  ctx.clearRect(0, 0, el.width, el.height);
+  ctx.strokeRect(x, y, w, h);
+  ctx.font = "12px sans-serif";
+  ctx.fillStyle = "#000";
+
+   let currentY = y;
+   console.log(data.face, i);
+  data.face.forEach((fc, index) => {
+    const sectionHeight = fc.height * 3; // 每个面板的高度
+
+    // 背景颜色
+    ctx.strokeStyle = '#000';
+   
+    ctx.strokeRect(x, currentY, w, sectionHeight);
+if (index === i) {
+  ctx.fillStyle = '#ccc'; // 只对高亮面填充浅灰
+  ctx.fillRect(x, currentY, w, sectionHeight);
+
+
+}
+
+
+
+    // 把手位置
+    ctx.beginPath();
+    ctx.strokeStyle = '#000';
+    if (fc.type === 'drawer') {
+      // 抽屉把手在中间
+      ctx.moveTo(x + w / 2 - 5, currentY + sectionHeight / 2);
+      ctx.lineTo(x + w / 2 + 5, currentY + sectionHeight / 2);
+    } else if (fc.type === 'single left door') {
+      // 把手在右边中间
+      ctx.moveTo(x + w - 5, currentY + sectionHeight / 2 - 5);
+      ctx.lineTo(x + w - 5, currentY + sectionHeight / 2 + 5);
+    } else if (fc.type === 'single right door') {
+      // 把手在左边中间
+      ctx.moveTo(x + 5, currentY + sectionHeight / 2 - 5);
+      ctx.lineTo(x + 5, currentY + sectionHeight / 2 + 5);
+    } else if (fc.type === 'double door') {
+      // 左右门把手
+  ctx.moveTo(x + w / 2 - 5, currentY + sectionHeight / 2 - 5);
+  ctx.lineTo(x + w / 2 - 5, currentY + sectionHeight / 2 + 5);
+  ctx.moveTo(x + w / 2 + 5, currentY + sectionHeight / 2 - 5);
+  ctx.lineTo(x + w / 2 + 5, currentY + sectionHeight / 2 + 5);
+
+  // 中间分隔线（门缝）
+  ctx.moveTo(x + w / 2, currentY);
+  ctx.lineTo(x + w / 2, currentY + sectionHeight);
+    }
+    ctx.stroke();
+
+    currentY += sectionHeight;
+  });
+};
 
 
 const drawBox = () => {
@@ -646,14 +752,14 @@ const drawBox = () => {
   ctx.moveTo(x, y + h + 10);
   ctx.lineTo(x + w, y + h + 10);
  
-  ctx.fillText(`${width}"`, x + w / 2, y + h + 24);
+  ctx.fillText("${width}", x + w / 2, y + h + 24);
 
   // 标记高度
   ctx.beginPath();
   ctx.moveTo(x - 10, y);
   ctx.lineTo(x - 10, y + h);
 
-  ctx.fillText(`${height}"`, x - 24, y + h / 2 + 4);
+  ctx.fillText("${height}", x - 24, y + h / 2 + 4);
 
   // 深度线条
   ctx.beginPath();
@@ -671,7 +777,7 @@ const drawBox = () => {
   ctx.beginPath();
   ctx.moveTo(x + w + 10, y + h);
   ctx.lineTo(x + w + d + 10, y + h - d);
-  ctx.fillText(`${depth}"`, x + w + d / 2 + 10, y + h - d / 2 + 4);
+  ctx.fillText("${depth}", x + w + d / 2 + 10, y + h - d / 2 + 4);
 
     // 层板分布
   const shelfCount = localJsonData.value.box.shelves.length;
@@ -760,3 +866,38 @@ onMounted(() => {
 });
 
 </script>
+<style scoped>
+.label-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  max-height: 80vh;
+  overflow: auto;
+}
+.label-cell {
+  border: 1px solid #ccc;
+  padding: 10px;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 180px;
+}
+.label-head {
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+.label-body {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.label-info {
+  flex: 1;
+  line-height: 1.4;
+}
+.mini-canvas {
+  margin-left: 10px;
+  border: 1px solid #000;
+}
+</style>
