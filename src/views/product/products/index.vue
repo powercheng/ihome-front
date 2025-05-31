@@ -79,7 +79,7 @@
       v-model:limit="queryParams.pageSize" @pagination="getList" />
 
     <!-- 拆单弹窗 -->
-    <el-dialog v-model="splitDialogVisible" title="拆单标签预览" width="90%">
+    <el-dialog v-model="splitDialogVisible" title="拆单标签预览" width="90%"   @close="onClose"  v-if="currentRow && currentRow.specification && currentRow.specification.face">
       <div class="label-grid">
         <div class="label-cell" v-for="(face, i) in currentRow.specification.face" :key="i">
           <div class="label-head">{{ currentRow.code }} </div>
@@ -159,32 +159,32 @@
             </el-form-item>
           </el-form>
 
-          <el-table :data="panelRows"
+          <el-table :data="localJsonData.box.panels"
             style="width: 100%" size="small" :header-cell-style="{ textAlign: 'center' }">
-            <el-table-column prop="name" label="position" width="100" align="center" />
+            <el-table-column prop="panelName" label="position" width="100" align="center" />
             <el-table-column label="width" align="center">
               <template #default="scope">
-                {{ scope.row.ref.width }}
+                {{ scope.row.width }}
               </template>
             </el-table-column>
             <el-table-column label="height" align="center">
               <template #default="scope">
-                {{ scope.row.ref.height }}
+                {{ scope.row.height }}
               </template>
             </el-table-column>
             <el-table-column label="depth" align="center">
               <template #default="scope">
-                {{ scope.row.ref.depth }}
+                {{ scope.row.depth }}
               </template>
             </el-table-column>
             <el-table-column label="material" align="center">
               <template #default="scope">
-                <el-input v-model="scope.row.ref.material" />
+                <el-input v-model="scope.row.material" />
               </template>
             </el-table-column>
             <el-table-column label="price" align="center">
               <template #default="scope">
-                <el-input-number v-model="scope.row.ref.price" :min="0" />
+                <el-input-number v-model="scope.row.price" :min="0" />
               </template>
             </el-table-column>
           </el-table>
@@ -326,13 +326,13 @@ const specification = ref({
     width: 0,
     height: 0,
     depth: 0,
-    panels: {
-      left: { width: 0, height: 0, depth: 0, material: 'plywood', price: 0 },
-      right: { width: 0, height: 0, depth: 0, material: 'plywood', price: 0 },
-      bottom: { width: 0, height: 0, depth: 0, material: 'plywood', price: 0 },
-      back: { width: 0, height: 0, depth: 0, material: 'plywood', price: 0 },
-      top: { width: 0, height: 0, depth: 0, material: 'plywood', price: 0 }
-    },
+      panels: [
+        {panelName:'left', width: 0, height: 0, depth: 0.75, material: 'plywood', price: 0 },
+        {panelName:'right', width: 0, height: 0, depth: 0.75, material: 'plywood', price: 0 },
+        {panelName:'top', width: 0, height: 0, depth: 0.75, material: 'plywood', price: 0 },
+        {pnaelName:'bottom', width: 0, height: 0, depth: 0.75, material: 'plywood', price: 0 },
+        {panelName:'back',  width: 0, height: 0, depth: 0.25, material: 'plywood', price: 0 }
+      ],
     shelves: []
   },
   face: [],
@@ -342,45 +342,39 @@ const specification = ref({
 const localJsonData = ref(JSON.parse(JSON.stringify(specification.value)));
 
 const openEditor = (row) => {
+
   currentRow.value = row;
-  console.log('openEditor', currentRow.value);
   const parsedSpec = typeof row.specification === 'string'
     ? JSON.parse(row.specification || '{}')
     : row.specification;
-
 
   localJsonData.value = parsedSpec || {
     box: {
       width: row.width || 0,
       height: row.height || 0,
       depth: row.depth || 0,
-      panels: {
-        left: { width: 0, height: 0, depth: 0.75, material: 'plywood', price: 0 },
-        right: { width: 0, height: 0, depth: 0.75, material: 'plywood', price: 0 },
-        bottom: { width: 0, height: 0, depth: 0.75, material: 'plywood', price: 0 },
-        top: { width: 0, height: 0, depth: 0.75, material: 'plywood', price: 0 },
-        back: { width: 0, height: 0, depth: 0.25, material: 'plywood', price: 0 }
-      },
+      panels: [
+        {panelName:'left', width: row.depth, height: row.height, depth: 0.75, material: 'plywood', price: 0 },
+        {panelName:'right', width: row.depth, height: row.height, depth: 0.75, material: 'plywood', price: 0 },
+        {panelName:'top', width: row.width, height: row.depth, depth: 0.75, material: 'plywood', price: 0 },
+        {panelName:'bottom', width: row.width, height: row.depth, depth: 0.75, material: 'plywood', price: 0 },
+        {panelName:'back',  width: row.width, height: row.height, depth: 0.25, material: 'plywood', price: 0 }
+      ],
       shelves: []
     },
     face: [],
     Accessories: []
   };
-
-  recalculatePanels(); // 同步面板尺寸
+  console.log('localJsonData', localJsonData.value);
   dialogVisible.value = true;
 };
 
-const panelRows = computed(() => {
-  return Object.entries(localJsonData.value.box.panels).map(([name, ref]) => ({
-    name,
-    ref
-  }));
-});
+
 
 const recalculatePanels = () => {
   const box = localJsonData.value.box;
   const { width, height, depth } = box;
+  console.log('recalculatePanels', width, height, depth);
 
   if (!box.panels) box.panels = {};
 
@@ -469,6 +463,8 @@ const onSave = () => {
 
 const onClose = () => {
   dialogVisible.value = false;
+  splitDialogVisible.value = false;
+  currentRow.value = null;
 };
 
 
@@ -633,8 +629,6 @@ function formatSupplierName(row) {
 
 getList();
 const canvas = ref(null);
-
-
 const splitDialogVisible = ref(false);
 const faceCanvases = ref([]);
 const openSplitDialog = (row) => {
@@ -646,14 +640,14 @@ const openSplitDialog = (row) => {
   currentRow.value.specification = parsedSpec;
   console.log('openSplitDialog', currentRow);
   nextTick(() => {
-    faceCanvases.value.forEach((canvas, i) => {
-      console.log('faceCanvases', faceCanvases.value, i, canvas);
-      if (!(canvas instanceof HTMLCanvasElement)) {
-        console.warn('Canvas at index ${i} is not a valid HTMLCanvasElement', canvas);
+    faceCanvases.value.forEach((c, i) => {
+      console.log('faceCanvases', faceCanvases.value, i, c);
+      if (!(c instanceof HTMLCanvasElement)) {
+        console.warn('Canvas at index ${i} is not a valid HTMLCanvasElement', c);
         return;
       }
-      console.log('Drawing face preview for canvas', i, canvas);
-      drawFacePreview(canvas, parsedSpec,i);
+      console.log('Drawing face preview for canvas', i, c);
+      drawFacePreview(c, parsedSpec,i);
     });
   });
 };

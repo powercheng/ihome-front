@@ -1,6 +1,6 @@
 <template>
   <div class="app-container">
-    <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
+    <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" >
       <el-form-item label="customer_po" prop="customerPo">
         <el-input
           v-model="queryParams.customerPo"
@@ -21,38 +21,9 @@
           type="primary"
           plain
           icon="Plus"
-          @click="$router.push('/order/add')"
+          @click="$router.push('/order/quote/add')"
           v-hasPermi="['order:quote:add']"
         >新增</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button
-          type="success"
-          plain
-          icon="Edit"
-          :disabled="single"
-          @click="handleUpdate"
-          v-hasPermi="['order:quote:edit']"
-        >修改</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button
-          type="danger"
-          plain
-          icon="Delete"
-          :disabled="multiple"
-          @click="handleDelete"
-          v-hasPermi="['order:quote:remove']"
-        >删除</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button
-          type="warning"
-          plain
-          icon="Download"
-          @click="handleExport"
-          v-hasPermi="['order:quote:export']"
-        >导出</el-button>
       </el-col>
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
@@ -72,7 +43,7 @@
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
           <el-button type="primary" size="small" @click="openConvertDialog(scope.row)">order</el-button>
-          <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['order:quote:edit']">修改</el-button>
+          <el-button link type="primary" icon="Edit" @click="$router.push({path:'/order/quote/add', query: {id: scope.row.id}})" v-hasPermi="['order:quote:edit']">修改</el-button>
           <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['order:quote:remove']">删除</el-button>
         </template>
       </el-table-column>
