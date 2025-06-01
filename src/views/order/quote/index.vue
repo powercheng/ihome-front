@@ -1,13 +1,8 @@
 <template>
   <div class="app-container">
-    <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" >
+    <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch">
       <el-form-item label="customer_po" prop="customerPo">
-        <el-input
-          v-model="queryParams.customerPo"
-          placeholder="请输入customer_po"
-          clearable
-          @keyup.enter="handleQuery"
-        />
+        <el-input v-model="queryParams.customerPo" placeholder="请输入customer_po" clearable @keyup.enter="handleQuery" />
       </el-form-item>
       <el-form-item>
         <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
@@ -17,13 +12,8 @@
 
     <el-row :gutter="10" class="mb8">
       <el-col :span="1.5">
-        <el-button
-          type="primary"
-          plain
-          icon="Plus"
-          @click="$router.push('/order/quote/add')"
-          v-hasPermi="['order:quote:add']"
-        >新增</el-button>
+        <el-button type="primary" plain icon="Plus" @click="$router.push('/order/quote/add')"
+          v-hasPermi="['order:quote:add']">新增</el-button>
       </el-col>
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
@@ -43,46 +33,40 @@
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
           <el-button type="primary" size="small" @click="openConvertDialog(scope.row)">order</el-button>
-          <el-button link type="primary" icon="Edit" @click="$router.push({path:'/order/quote/add', query: {id: scope.row.id}})" v-hasPermi="['order:quote:edit']">修改</el-button>
-          <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['order:quote:remove']">删除</el-button>
+          <el-button link type="primary" icon="Edit"
+            @click="$router.push({ path: '/order/quote/add', query: { id: scope.row.id } })"
+            v-hasPermi="['order:quote:edit']">修改</el-button>
+          <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)"
+            v-hasPermi="['order:quote:remove']">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
-    
-    <pagination
-      v-show="total>0"
-      :total="total"
-      v-model:page="queryParams.pageNum"
-      v-model:limit="queryParams.pageSize"
-      @pagination="getList"
-    />
+
+    <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize"
+      @pagination="getList" />
 
 
-    <el-dialog
-  v-model="convertDialogVisible"
-  title="make a order"
-  width="600px"
->
-  <el-form :model="orderForm" label-width="120px">
-    <el-form-item label="customer po">
-      <el-input v-model="orderForm.customerPo" disabled />
-    </el-form-item>
-    <el-form-item label="recipient">
-      <el-input v-model="orderForm.deliveryName" placeholder="请输入收货人姓名" />
-    </el-form-item>
-    <el-form-item label="deliverry address">
-      <el-input v-model="orderForm.deliveryAddress" placeholder="请输入收货地址" />
-    </el-form-item>
-    <el-form-item label="note">
-      <el-input type="textarea" v-model="orderForm.note" placeholder="请输入备注（可选）" />
-    </el-form-item>
-  </el-form>
+    <el-dialog v-model="convertDialogVisible" title="make a order" width="600px">
+      <el-form :model="orderForm" label-width="120px">
+        <el-form-item label="customer po">
+          <el-input v-model="orderForm.customerPo" disabled />
+        </el-form-item>
+        <el-form-item label="recipient">
+          <el-input v-model="orderForm.deliveryName" placeholder="请输入收货人姓名" />
+        </el-form-item>
+        <el-form-item label="deliverry address">
+          <el-input v-model="orderForm.deliveryAddress" placeholder="请输入收货地址" />
+        </el-form-item>
+        <el-form-item label="note">
+          <el-input type="textarea" v-model="orderForm.note" placeholder="请输入备注（可选）" />
+        </el-form-item>
+      </el-form>
 
-  <template #footer>
-    <el-button @click="convertDialogVisible = false">取消</el-button>
-    <el-button type="primary" @click="confirmConvert">确认转换</el-button>
-  </template>
-</el-dialog>
+      <template #footer>
+        <el-button @click="convertDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="confirmConvert">确认转换</el-button>
+      </template>
+    </el-dialog>
 
     <!-- 添加或修改报价对话框 -->
     <el-dialog :title="title" v-model="open" width="500px" append-to-body>
@@ -273,12 +257,12 @@ function submitForm() {
 /** 删除按钮操作 */
 function handleDelete(row) {
   const _ids = row.id || ids.value;
-  proxy.$modal.confirm('是否确认删除报价编号为"' + _ids + '"的数据项？').then(function() {
+  proxy.$modal.confirm('是否确认删除报价编号为"' + _ids + '"的数据项？').then(function () {
     return delQuote(_ids);
   }).then(() => {
     getList();
     proxy.$modal.msgSuccess("删除成功");
-  }).catch(() => {});
+  }).catch(() => { });
 }
 
 /** 导出按钮操作 */

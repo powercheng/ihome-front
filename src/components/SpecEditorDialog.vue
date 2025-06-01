@@ -178,7 +178,6 @@ watch(() => props.modelValue, (val) => {
                 ? JSON.parse(props.row.specification)
                 : props.row.specification;
             localJsonData.value = JSON.parse(JSON.stringify(spec || defaultSpec(props.row)));
-            console.log('Loaded spec:', localJsonData.value);
         } catch (e) {
             localJsonData.value = defaultSpec(props.row);
         }
@@ -187,23 +186,52 @@ watch(() => props.modelValue, (val) => {
 
 const recalculatePanels = () => {
     const box = localJsonData.value.box;
-    const { width, height, depth } = box;
-    if (!box.panels) box.panels = {};
+    localJsonData.value.box.panels = [
+        {
+            panelName: 'top',
+            width: box.width,
+            height: box.depth,
+            depth: 0.75,
+            material: getPanel('top').material,
+            price: getPanel('top').price
+        },
+        {
+            panelName: 'bottom',
+            width: box.width,
+            height: box.depth,
+            depth: 0.75,
+            material: getPanel('bottom').material,
+            price: getPanel('bottom').price
+        },
+        {
+            panelName: 'left',
+            width: box.depth,
+            height: box.height,
+            depth: 0.75,
+            material: getPanel('left').material,
+            price: getPanel('left').price
+        },
+        {
+            panelName: 'right',
+            width: box.depth,
+            height: box.height,
+            depth: 0.75,
+            material: getPanel('right').material,
+            price: getPanel('right').price
+        },
+        {
+            panelName: 'back',
+            width: box.width,
+            height: box.height,
+            depth: 0.25,
+            material: getPanel('back').material,
+            price: getPanel('back').price
+        }
+    ];
+};
 
-    // 更新尺寸，保留原有 material 和 price
-    const updatePanel = (name, newDims) => {
-        const panel = box.panels[name] || {};
-        box.panels[name] = {
-            ...panel,  // 保留已有 material / price 等字段
-            ...newDims  // 覆盖尺寸字段
-        };
-    };
-
-    updatePanel('left', { width: depth, height: height, depth: 0.75 });
-    updatePanel('right', { width: depth, height: height, depth: 0.75 });
-    updatePanel('bottom', { width: width, height: depth, depth: 0.75 });
-    updatePanel('top', { width: width, height: depth, depth: 0.75 });
-    updatePanel('back', { width: width, height: height, depth: 0.75 });
+const getPanel = (name) => {
+    return localJsonData.value.box.panels?.find(p => p.panelName === name) || {};
 };
 
 const defaultSpec = (row) => ({
@@ -211,6 +239,7 @@ const defaultSpec = (row) => ({
         width: row.width || 0,
         height: row.height || 0,
         depth: row.depth || 0,
+        material: 'plywood',
         panels: [],
         shelves: []
     },
@@ -264,11 +293,235 @@ const removeFace = (index) => {
     localJsonData.value.face.splice(index, 1);
 };
 
-const handleJsonChange = (value) => {
-    localJsonData.value = value;
+const canvas = ref(null);
+const splitDialogVisible = ref(false);
+const faceCanvases = ref([]);
+const openSplitDialog = (row) => {
+    splitDialogVisible.value = true;
+    currentRow.value = row;
+    const parsedSpec = typeof row.specification === 'string'
+        ? JSON.parse(row.specification || '{}')
+        : row.specification;
+    currentRow.value.specification = parsedSpec;
+    console.log('openSplitDialog', currentRow);
+    nextTick(() => {
+        faceCanvases.value.forEach((c, i) => {
+            console.log('faceCanvases', faceCanvases.value, i, c);
+            if (!(c instanceof HTMLCanvasElement)) {
+                console.warn('Canvas at index ${i} is not a valid HTMLCanvasElement', c);
+                return;
+            }
+            console.log('Drawing face preview for canvas', i, c);
+            drawFacePreview(c, parsedSpec, i);
+        });
+    });
 };
 
 
+const drawFacePreview = (el, data, i) => {
+    if (!el) return;
+    const ctx = el.getContext('2d');
+
+    const w = data.box.width * 3;
+    const h = data.box.height * 3;
+    const x = 0;
+    const y = 0;
+    ctx.clearRect(0, 0, el.width, el.height);
+    ctx.strokeRect(x, y, w, h);
+    ctx.font = "12px sans-serif";
+    ctx.fillStyle = "#000";
+
+    let currentY = y;
+    console.log(data.face, i);
+    data.face.forEach((fc, index) => {
+        const sectionHeight = fc.height * 3; // 每个面板的高度
+
+        // 背景颜色
+        ctx.strokeStyle = '#000';
+
+        ctx.strokeRect(x, currentY, w, sectionHeight);
+        if (index === i) {
+            ctx.fillStyle = '#ccc'; // 只对高亮面填充浅灰
+            ctx.fillRect(x, currentY, w, sectionHeight);
+
+
+        }
+
+
+
+        // 把手位置
+        ctx.beginPath();
+        ctx.strokeStyle = '#000';
+        if (fc.type === 'drawer') {
+            // 抽屉把手在中间
+            ctx.moveTo(x + w / 2 - 5, currentY + sectionHeight / 2);
+            ctx.lineTo(x + w / 2 + 5, currentY + sectionHeight / 2);
+        } else if (fc.type === 'single left door') {
+            // 把手在右边中间
+            ctx.moveTo(x + w - 5, currentY + sectionHeight / 2 - 5);
+            ctx.lineTo(x + w - 5, currentY + sectionHeight / 2 + 5);
+        } else if (fc.type === 'single right door') {
+            // 把手在左边中间
+            ctx.moveTo(x + 5, currentY + sectionHeight / 2 - 5);
+            ctx.lineTo(x + 5, currentY + sectionHeight / 2 + 5);
+        } else if (fc.type === 'double door') {
+            // 左右门把手
+            ctx.moveTo(x + w / 2 - 5, currentY + sectionHeight / 2 - 5);
+            ctx.lineTo(x + w / 2 - 5, currentY + sectionHeight / 2 + 5);
+            ctx.moveTo(x + w / 2 + 5, currentY + sectionHeight / 2 - 5);
+            ctx.lineTo(x + w / 2 + 5, currentY + sectionHeight / 2 + 5);
+
+            // 中间分隔线（门缝）
+            ctx.moveTo(x + w / 2, currentY);
+            ctx.lineTo(x + w / 2, currentY + sectionHeight);
+        }
+        ctx.stroke();
+
+        currentY += sectionHeight;
+    });
+};
+
+
+const drawBox = () => {
+    const ctx = canvas.value?.getContext('2d');
+    if (!ctx) return;
+    const { width, height, depth } = localJsonData.value.box;
+
+    // 清空
+    ctx.clearRect(0, 0, canvas.value.width, canvas.value.height);
+    ctx.strokeStyle = '#333';
+    const scale = 5;
+    ctx.lineWidth = 0.75 * scale;
+
+    const x = 100;
+    const y = 100;
+
+    const w = width * scale;
+    const h = height * scale;
+    const d = depth * scale * 0.5; // 斜角表示深度
+
+    // 正面矩形
+    ctx.strokeRect(x, y, w, h);
+    ctx.font = "12px sans-serif";
+    ctx.fillStyle = "#000";
+    ctx.textAlign = "center";
+
+    // 标记宽度
+    ctx.beginPath();
+    ctx.moveTo(x, y + h + 10);
+    ctx.lineTo(x + w, y + h + 10);
+
+    ctx.fillText(width, x + w / 2, y + h + 24);
+
+    // 标记高度
+    ctx.beginPath();
+    ctx.moveTo(x - 10, y);
+    ctx.lineTo(x - 10, y + h);
+
+    ctx.fillText(height, x - 24, y + h / 2 + 4);
+
+    // 深度线条
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + d, y - d);
+    ctx.lineTo(x + d + w, y - d);
+    ctx.lineTo(x + w, y);
+    ctx.moveTo(x + w, y + h);
+    ctx.lineTo(x + w + d, y + h - d);
+    ctx.lineTo(x + w + d, y + h - d - h);
+    ctx.lineTo(x + w, y);
+    ctx.stroke();
+
+    // 标记深度
+    ctx.beginPath();
+    ctx.moveTo(x + w + 10, y + h);
+    ctx.lineTo(x + w + d + 10, y + h - d);
+    ctx.fillText(depth, x + w + d / 2 + 10, y + h - d / 2 + 4);
+
+    // 层板分布
+    const shelfCount = localJsonData.value.box.shelves.length;
+    if (shelfCount > 0) {
+        const shelfThickness = 0.75 * scale;
+        const availableHeight = h - 2 * shelfThickness;
+        const gap = availableHeight / (shelfCount + 1);
+
+        ctx.strokeStyle = '#1976d2';
+        ctx.fillStyle = '#1976d2';
+        ctx.font = '12px sans-serif';
+
+        for (let i = 1; i <= shelfCount; i++) {
+            const shelfY = y + shelfThickness + i * gap;
+            ctx.beginPath();
+            ctx.moveTo(x, shelfY);
+            ctx.lineTo(x + w, shelfY);
+            ctx.stroke();
+
+            // 斜线表示厚度
+            ctx.beginPath();
+            ctx.moveTo(x + w, shelfY);
+            ctx.lineTo(x + w + d, shelfY - d);
+            ctx.stroke();
+
+        }
+    }
+    // 画 face 区块（每一层门或抽屉）
+    let currentY = y;
+    const totalHeight = h;
+    const faces = localJsonData.value.face;
+    const totalUnitHeight = faces.reduce((sum, f) => sum + f.height, 0);
+
+    faces.forEach((face, index) => {
+        const heightRatio = face.height / totalUnitHeight;
+        const sectionHeight = heightRatio * totalHeight;
+
+        // 背景颜色
+        ctx.strokeStyle = '#4caf50';
+        ctx.fillStyle = face.type.includes('drawer') ? '#ffe0b2' : '#bbdefb';
+        ctx.fillRect(x, currentY, w, sectionHeight);
+        ctx.strokeRect(x, currentY, w, sectionHeight);
+
+
+
+        // 把手位置
+        ctx.beginPath();
+        ctx.strokeStyle = '#000';
+        if (face.type === 'drawer') {
+            // 抽屉把手在中间
+            ctx.moveTo(x + w / 2 - 10, currentY + sectionHeight / 2);
+            ctx.lineTo(x + w / 2 + 10, currentY + sectionHeight / 2);
+        } else if (face.type === 'single left door') {
+            // 把手在右边中间
+            ctx.moveTo(x + w - 10, currentY + sectionHeight / 2 - 10);
+            ctx.lineTo(x + w - 10, currentY + sectionHeight / 2 + 10);
+        } else if (face.type === 'single right door') {
+            // 把手在左边中间
+            ctx.moveTo(x + 10, currentY + sectionHeight / 2 - 10);
+            ctx.lineTo(x + 10, currentY + sectionHeight / 2 + 10);
+        } else if (face.type === 'double door') {
+            // 左右门把手
+            ctx.moveTo(x + w / 2 - 12, currentY + sectionHeight / 2 - 10);
+            ctx.lineTo(x + w / 2 - 12, currentY + sectionHeight / 2 + 10);
+            ctx.moveTo(x + w / 2 + 12, currentY + sectionHeight / 2 - 10);
+            ctx.lineTo(x + w / 2 + 12, currentY + sectionHeight / 2 + 10);
+
+            // 中间分隔线（门缝）
+            ctx.moveTo(x + w / 2, currentY);
+            ctx.lineTo(x + w / 2, currentY + sectionHeight);
+        }
+        ctx.stroke();
+        currentY += sectionHeight;
+    });
+};
+
+
+// 动态监听尺寸变化
+watch(() => localJsonData.value, () => {
+    nextTick(() => drawBox());
+}, { deep: true });
+
+onMounted(() => {
+    nextTick(drawBox);
+});
 
 const onClose = () => {
     emits('update:modelValue', false);
@@ -286,3 +539,10 @@ const onSave = () => {
     emits('update:modelValue', false);
 };
 </script>
+
+<style scoped>
+.mini-canvas {
+    margin-left: 10px;
+    border: 1px solid #000;
+}
+</style>

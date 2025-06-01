@@ -5,6 +5,12 @@
         <el-input v-model="quoteForm.customerPo" placeholder="input customer info" />
       </el-form-item>
 
+
+
+      <el-form-item label="Material">
+        <el-autocomplete v-model="selectedMaterialId" :fetch-suggestions="querySearch(3)"
+          placeholder="Search material" @select="onMaterialSelect" style="width: 100%" />
+      </el-form-item>
       <h3>Product List</h3>
       <el-table :data="quoteForm.products" style="width: 100%" border>
         <el-table-column label="type" prop="type" align="center" min-width="100">
@@ -19,7 +25,7 @@
           <template #default="scope">
             <el-autocomplete v-model="scope.row.code" :fetch-suggestions="querySearch(scope.row.type)"
               placeholder="input product code" @select="(item) => handleSelect(scope.$index, item)"
- style="width: 100%" />
+              style="width: 100%" />
           </template>
         </el-table-column>
         <el-table-column label="width" prop="width" align="center" min-width="50" />
@@ -27,16 +33,15 @@
         <el-table-column label="depth" prop="depth" align="center" min-width="50" />
         <el-table-column label="description" prop="description" align="center" :show-overflow-tooltip="true"
           min-width="200" />
-        <el-table-column label="material" prop="material" align="center" min-width="80" />
+        <el-table-column label="material" prop="materialId" align="center" min-width="80">
+          <template #default="scope">
+            <el-autocomplete v-model="scope.row.materialId" :fetch-suggestions="querySearch(3)"
+              placeholder="input product code" style="width: 100%" />
+          </template>
+        </el-table-column>
         <el-table-column label="specification" align="center" prop="specification" min-width="80">
           <template #default="scope">
             <el-button type="primary" size="small" @click="openEditor(scope.row)">编辑</el-button>
-
-              <ProductSpecEditor
-    v-model="editorVisible"
-    :row="scope.row"
-    @save="handleSave"
-  />
           </template>
         </el-table-column>
         <el-table-column label="price" prop="unit_price" align="center" min-width="50">
@@ -56,6 +61,8 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <ProductSpecEditor v-model="editorVisible" :row="currentRow" @save="handleSave" />
 
       <div class="my-2">
         <el-button type="success" icon="Plus" @click="openProductSelector">添加商品</el-button>
@@ -91,6 +98,7 @@ import ProductSpecEditor from '@/components/SpecEditorDialog.vue';
 
 const editorVisible = ref(false);
 const currentRow = ref(null);
+const selectedMaterialId = ref('');
 
 const openEditor = (row) => {
   currentRow.value = row;
@@ -104,9 +112,6 @@ const handleSave = (updatedRow) => {
   });
 };
 
-
-
-
 const route = useRouter();
 const isEdit = ref(false);
 const quoteForm = reactive({
@@ -118,9 +123,7 @@ const quoteForm = reactive({
 });
 
 const { proxy } = getCurrentInstance();
-const { product_type  } = proxy.useDict('product_type');
-
-
+const { product_type } = proxy.useDict('product_type');
 
 const fetchQuoteById = async (id) => {
   try {
@@ -177,7 +180,7 @@ const querySearch = (currentType) => async (queryString, cb) => {
     console.log('querySearch response', response);
     cb(response.rows.map(item => ({
       ...item,
-      value: item.code // 计算总价
+      value: item.code
     })));
   } catch (e) {
     cb([]); // 防止失败时卡住
@@ -188,12 +191,17 @@ const handleSelect = (rowIndex, selectedProduct) => {
   console.log('selectedProduct', selectedProduct);
   const row = quoteForm.products[rowIndex];
   Object.assign(row, {
-    ...selectedProduct,
+    width: selectedProduct.width || '',
+    height: selectedProduct.height || '',
+    depth: selectedProduct.depth || '',
+    description: selectedProduct.description || '',
+    specification: selectedProduct.specification || '', 
     quantity: row.quantity || 1,
     total: selectedProduct.unit_price * (row.quantity || 1),
     description: selectedProduct.description || '',
     specification: selectedProduct.specification || ''
   });
+  console.log('row', row);
   calculateTotal();
 };
 
@@ -217,6 +225,7 @@ const openProductSelector = () => {
   quoteForm.products.push({
     type: '1',
     price: 0,
+    materialId: selectedMaterialId.value,
     quantity: 1,
   });
   calculateTotal();
