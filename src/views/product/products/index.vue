@@ -80,23 +80,9 @@
 
     <ProductSpecEditor v-model="editorVisible" :row="currentRow" @save="handleSave" />
 
-    <!-- 拆单弹窗 -->
-    <el-dialog v-model="splitDialogVisible" title="拆单标签预览" width="90%" @close="onClose"
-      v-if="currentRow && currentRow.specification && currentRow.specification.face">
-      <div class="label-grid">
-        <div class="label-cell" v-for="(face, i) in currentRow.specification.face" :key="i">
-          <div class="label-head">{{ currentRow.code }} </div>
-          <div class="label-body">
-            <div class="label-info">
-              <div>{{ face.type }} {{ face.width }} x {{ face.height }}</div>
-              <div>material: {{ currentRow.specification.face[i].material }}</div>
-            </div>
-            <canvas :ref="el => faceCanvases[i] = el" :width="currentRow.width * 3" :height="currentRow.height * 3"
-              class="mini-canvas"></canvas>
-          </div>
-        </div>
-      </div>
-    </el-dialog>
+    <PanelSizeDialog v-model="splitDialogVisible" :row="currentRow" />
+
+
 
 
 
@@ -144,25 +130,23 @@
         </div>
       </template>
     </el-dialog>
-
-
-
-
   </div>
-
-
-
-
 </template>
 
 <script setup name="Products">
 import { listProducts, getProducts, delProducts, addProducts, updateProducts } from "@/api/product/products";
 import { ref } from 'vue';
 
-
+import PanelSizeDialog from "@/components/PanelSizeDialog.vue";
 import ProductSpecEditor from '@/components/SpecEditorDialog.vue';
 const editorVisible = ref(false);
 const currentRow = ref(null);
+
+const splitDialogVisible = ref(false);
+const openSplitDialog = (row) => {
+  currentRow.value = row;
+  splitDialogVisible.value = true;
+};
 
 const openEditor = (row) => {
   currentRow.value = row;
