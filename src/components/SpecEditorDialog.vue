@@ -158,6 +158,7 @@
 </template>
 
 <script setup>
+import { he } from 'element-plus/es/locales.mjs';
 import { ref, watch, computed } from 'vue';
 const props = defineProps({
     modelValue: Boolean,
@@ -283,7 +284,7 @@ const addFace = () => {
         type: '',
         width: localJsonData.value.box.width,
         height: 0,
-        depth: 0,
+        depth: 0.75,
         material: '',
         price: 0
     });
@@ -294,94 +295,6 @@ const removeFace = (index) => {
 };
 
 const canvas = ref(null);
-const splitDialogVisible = ref(false);
-const faceCanvases = ref([]);
-const openSplitDialog = (row) => {
-    splitDialogVisible.value = true;
-    currentRow.value = row;
-    const parsedSpec = typeof row.specification === 'string'
-        ? JSON.parse(row.specification || '{}')
-        : row.specification;
-    currentRow.value.specification = parsedSpec;
-    console.log('openSplitDialog', currentRow);
-    nextTick(() => {
-        faceCanvases.value.forEach((c, i) => {
-            console.log('faceCanvases', faceCanvases.value, i, c);
-            if (!(c instanceof HTMLCanvasElement)) {
-                console.warn('Canvas at index ${i} is not a valid HTMLCanvasElement', c);
-                return;
-            }
-            console.log('Drawing face preview for canvas', i, c);
-            drawFacePreview(c, parsedSpec, i);
-        });
-    });
-};
-
-
-const drawFacePreview = (el, data, i) => {
-    if (!el) return;
-    const ctx = el.getContext('2d');
-
-    const w = data.box.width * 3;
-    const h = data.box.height * 3;
-    const x = 0;
-    const y = 0;
-    ctx.clearRect(0, 0, el.width, el.height);
-    ctx.strokeRect(x, y, w, h);
-    ctx.font = "12px sans-serif";
-    ctx.fillStyle = "#000";
-
-    let currentY = y;
-    console.log(data.face, i);
-    data.face.forEach((fc, index) => {
-        const sectionHeight = fc.height * 3; // 每个面板的高度
-
-        // 背景颜色
-        ctx.strokeStyle = '#000';
-
-        ctx.strokeRect(x, currentY, w, sectionHeight);
-        if (index === i) {
-            ctx.fillStyle = '#ccc'; // 只对高亮面填充浅灰
-            ctx.fillRect(x, currentY, w, sectionHeight);
-
-
-        }
-
-
-
-        // 把手位置
-        ctx.beginPath();
-        ctx.strokeStyle = '#000';
-        if (fc.type === 'drawer') {
-            // 抽屉把手在中间
-            ctx.moveTo(x + w / 2 - 5, currentY + sectionHeight / 2);
-            ctx.lineTo(x + w / 2 + 5, currentY + sectionHeight / 2);
-        } else if (fc.type === 'single left door') {
-            // 把手在右边中间
-            ctx.moveTo(x + w - 5, currentY + sectionHeight / 2 - 5);
-            ctx.lineTo(x + w - 5, currentY + sectionHeight / 2 + 5);
-        } else if (fc.type === 'single right door') {
-            // 把手在左边中间
-            ctx.moveTo(x + 5, currentY + sectionHeight / 2 - 5);
-            ctx.lineTo(x + 5, currentY + sectionHeight / 2 + 5);
-        } else if (fc.type === 'double door') {
-            // 左右门把手
-            ctx.moveTo(x + w / 2 - 5, currentY + sectionHeight / 2 - 5);
-            ctx.lineTo(x + w / 2 - 5, currentY + sectionHeight / 2 + 5);
-            ctx.moveTo(x + w / 2 + 5, currentY + sectionHeight / 2 - 5);
-            ctx.lineTo(x + w / 2 + 5, currentY + sectionHeight / 2 + 5);
-
-            // 中间分隔线（门缝）
-            ctx.moveTo(x + w / 2, currentY);
-            ctx.lineTo(x + w / 2, currentY + sectionHeight);
-        }
-        ctx.stroke();
-
-        currentY += sectionHeight;
-    });
-};
-
-
 const drawBox = () => {
     const ctx = canvas.value?.getContext('2d');
     if (!ctx) return;
@@ -389,7 +302,7 @@ const drawBox = () => {
 
     // 清空
     ctx.clearRect(0, 0, canvas.value.width, canvas.value.height);
-    ctx.strokeStyle = '#333';
+    ctx.strokeStyle = '#000';
     const scale = 5;
     ctx.lineWidth = 0.75 * scale;
 
@@ -400,43 +313,76 @@ const drawBox = () => {
     const h = height * scale;
     const d = depth * scale * 0.5; // 斜角表示深度
 
-    // 正面矩形
-    ctx.strokeRect(x, y, w, h);
-    ctx.font = "12px sans-serif";
-    ctx.fillStyle = "#000";
-    ctx.textAlign = "center";
 
-    // 标记宽度
-    ctx.beginPath();
-    ctx.moveTo(x, y + h + 10);
-    ctx.lineTo(x + w, y + h + 10);
+  /** ✅ 1. 画 front 面板（正面）*/
+  ctx.beginPath();
+  ctx.rect(x, y, w, h);
+  ctx.stroke();
 
-    ctx.fillText(width, x + w / 2, y + h + 24);
+  /** ✅ 2. 画 right 面板（右侧） */
+  ctx.beginPath();
+  ctx.moveTo(x + w, y);
+  ctx.lineTo(x + w + d, y - d);
+  ctx.lineTo(x + w + d, y - d + h);
+  ctx.lineTo(x + w, y + h);
+  ctx.closePath();
+  ctx.stroke();
 
-    // 标记高度
-    ctx.beginPath();
-    ctx.moveTo(x - 10, y);
-    ctx.lineTo(x - 10, y + h);
+  /** ✅ 3. 画 top 面板（顶部） */
+  ctx.fillStyle = '#64b5f6'; // top
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x + d, y - d);
+  ctx.lineTo(x + w + d, y - d);
+  ctx.lineTo(x + w, y);
+  ctx.closePath();
 
-    ctx.fillText(height, x - 24, y + h / 2 + 4);
+  ctx.stroke();
 
-    // 深度线条
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x + d, y - d);
-    ctx.lineTo(x + d + w, y - d);
-    ctx.lineTo(x + w, y);
-    ctx.moveTo(x + w, y + h);
-    ctx.lineTo(x + w + d, y + h - d);
-    ctx.lineTo(x + w + d, y + h - d - h);
-    ctx.lineTo(x + w, y);
-    ctx.stroke();
+  /** ✅ 4. 画 left 面板（只画轮廓） */
+  ctx.setLineDash([5, 5]); // 虚线
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x + d, y - d);
+  ctx.lineTo(x + d, y - d + h);
+  ctx.lineTo(x, y + h);
+  ctx.closePath();
+  ctx.stroke();
 
-    // 标记深度
-    ctx.beginPath();
-    ctx.moveTo(x + w + 10, y + h);
-    ctx.lineTo(x + w + d + 10, y + h - d);
-    ctx.fillText(depth, x + w + d / 2 + 10, y + h - d / 2 + 4);
+  /** ✅ 5. 画 back 面板轮廓 */
+  ctx.setLineDash([5, 5]); // 虚线
+  ctx.beginPath();
+  ctx.moveTo(x + d, y - d);
+  ctx.lineTo(x + w + d, y - d);
+  ctx.lineTo(x + w + d, y - d + h);
+  ctx.lineTo(x + d, y - d + h);
+  ctx.closePath();
+  ctx.stroke();
+  ctx.setLineDash([]); // 清除虚线
+
+  /** ✅ 尺寸标注（可选） */
+  ctx.font = "12px sans-serif";
+  ctx.fillStyle = "#000";
+  ctx.textAlign = "center";
+
+  // width 标注
+  ctx.beginPath();
+  ctx.moveTo(x, y + h + 10);
+  ctx.lineTo(x + w, y + h + 10);
+  ctx.fillText(`${width}"`, x + w / 2, y + h + 24);
+
+  // height 标注
+  ctx.beginPath();
+  ctx.moveTo(x - 10, y);
+  ctx.lineTo(x - 10, y + h);
+  ctx.fillText(`${height}"`, x - 24, y + h / 2 + 4);
+
+  // depth 标注
+  ctx.beginPath();
+  ctx.moveTo(x + w + 10, y + h);
+  ctx.lineTo(x + w + d + 10, y + h - d);
+  ctx.fillText(`${depth}"`, x + w + d / 2 + 10, y + h - d / 2 + 4);
+
 
     // 层板分布
     const shelfCount = localJsonData.value.box.shelves.length;
@@ -465,22 +411,22 @@ const drawBox = () => {
         }
     }
     // 画 face 区块（每一层门或抽屉）
+
     let currentY = y;
     const totalHeight = h;
     const faces = localJsonData.value.face;
     const totalUnitHeight = faces.reduce((sum, f) => sum + f.height, 0);
 
     faces.forEach((face, index) => {
+        console.log('Drawing face section', index, face);
         const heightRatio = face.height / totalUnitHeight;
         const sectionHeight = heightRatio * totalHeight;
-
+ 
         // 背景颜色
         ctx.strokeStyle = '#4caf50';
         ctx.fillStyle = face.type.includes('drawer') ? '#ffe0b2' : '#bbdefb';
         ctx.fillRect(x, currentY, w, sectionHeight);
         ctx.strokeRect(x, currentY, w, sectionHeight);
-
-
 
         // 把手位置
         ctx.beginPath();

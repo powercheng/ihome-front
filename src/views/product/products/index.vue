@@ -155,14 +155,13 @@ const openEditor = (row) => {
 
 const handleSave = (updatedRow) => {
   // 提交到后端
-  updateProducts(currentRow.value).then(() => {
+  console.log("Updated Row:", updatedRow);
+  updateProducts(updatedRow).then(() => {
     proxy.$modal.msgSuccess("参数已保存");
-    dialogVisible.value = false;
+    editorVisible.value = false;
     getList();
   });
 };
-
-
 
 // 拆单close标签预览
 const onClose = () => {
