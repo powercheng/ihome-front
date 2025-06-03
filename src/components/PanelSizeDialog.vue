@@ -65,8 +65,14 @@ const flatCells = computed(() => {
   normalizedRows.value.forEach(row => {
     const spec = typeof row.specification === 'string' ? JSON.parse(row.specification) : row.specification;
     cells.push({ ...row, type: 'box' });
+    spec.box.panels?.forEach(panel => {
+      cells.push({ ...panel, type: 'panel' });
+    });
+    spec.box.shelves?.forEach(shelf => {
+      cells.push({ ...shelf, type: 'shelf' });
+    });
     spec.face?.forEach(face => {
-      cells.push({ ...row, type: 'face', face });
+      cells.push({ ...face, type: 'face'});
     });
   });
   return cells;

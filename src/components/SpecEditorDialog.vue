@@ -312,76 +312,84 @@ const drawBox = () => {
     const w = width * scale;
     const h = height * scale;
     const d = depth * scale * 0.5; // 斜角表示深度
+    
+
+    const panels = localJsonData.value.box.panels || [];
+    panels.forEach(panel => {
+        if (panel.panelName === 'top') {
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x + d, y - d);
+            ctx.lineTo(x + w + d, y - d);
+            ctx.lineTo(x + w, y);
+            ctx.closePath();
+            ctx.stroke(); 
+        } else if (panel.panelName === 'bottom') {
+            ctx.setLineDash([5, 5]); // 虚线
+            ctx.beginPath();
+            ctx.moveTo(x, y + h);
+            ctx.lineTo(x + d, y + h - d);
+            ctx.lineTo(x + w + d, y + h - d);
+            ctx.lineTo(x + w, y + h);
+            ctx.closePath();
+            ctx.stroke();
+            ctx.setLineDash([]); // 清除虚线
+        } else if (panel.panelName === 'left') {
+            ctx.setLineDash([5, 5]); // 虚线
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x + d, y - d);
+            ctx.lineTo(x + d, y - d + h);
+            ctx.lineTo(x, y + h);
+            ctx.closePath();
+            ctx.stroke();
+            ctx.setLineDash([]); // 清除虚线
+        } else if (panel.panelName === 'right') {
+            ctx.beginPath();
+            ctx.moveTo(x + w, y);
+            ctx.lineTo(x + w + d, y - d);
+            ctx.lineTo(x + w + d, y - d + h);
+            ctx.lineTo(x + w, y + h);
+            ctx.closePath();
+            ctx.stroke();
+        } else if (panel.panelName === 'back') {
+            ctx.setLineDash([5, 5]); // 虚线
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x + w, y);
+            ctx.lineTo(x + w, y + h);
+            ctx.lineTo(x, y + h);
+            ctx.closePath();
+            ctx.stroke();
+            ctx.setLineDash([]); // 清除虚线
+        }
+    });
 
 
-  /** ✅ 1. 画 front 面板（正面）*/
-  ctx.beginPath();
-  ctx.rect(x, y, w, h);
-  ctx.stroke();
 
-  /** ✅ 2. 画 right 面板（右侧） */
-  ctx.beginPath();
-  ctx.moveTo(x + w, y);
-  ctx.lineTo(x + w + d, y - d);
-  ctx.lineTo(x + w + d, y - d + h);
-  ctx.lineTo(x + w, y + h);
-  ctx.closePath();
-  ctx.stroke();
 
-  /** ✅ 3. 画 top 面板（顶部） */
-  ctx.fillStyle = '#64b5f6'; // top
-  ctx.beginPath();
-  ctx.moveTo(x, y);
-  ctx.lineTo(x + d, y - d);
-  ctx.lineTo(x + w + d, y - d);
-  ctx.lineTo(x + w, y);
-  ctx.closePath();
+    /** ✅ 尺寸标注（可选） */
+    ctx.font = "12px sans-serif";
+    ctx.fillStyle = "#000";
+    ctx.textAlign = "center";
 
-  ctx.stroke();
+    // width 标注
+    ctx.beginPath();
+    ctx.moveTo(x, y + h + 10);
+    ctx.lineTo(x + w, y + h + 10);
+    ctx.fillText(`${width}"`, x + w / 2, y + h + 24);
 
-  /** ✅ 4. 画 left 面板（只画轮廓） */
-  ctx.setLineDash([5, 5]); // 虚线
-  ctx.beginPath();
-  ctx.moveTo(x, y);
-  ctx.lineTo(x + d, y - d);
-  ctx.lineTo(x + d, y - d + h);
-  ctx.lineTo(x, y + h);
-  ctx.closePath();
-  ctx.stroke();
+    // height 标注
+    ctx.beginPath();
+    ctx.moveTo(x - 10, y);
+    ctx.lineTo(x - 10, y + h);
+    ctx.fillText(`${height}"`, x - 24, y + h / 2 + 4);
 
-  /** ✅ 5. 画 back 面板轮廓 */
-  ctx.setLineDash([5, 5]); // 虚线
-  ctx.beginPath();
-  ctx.moveTo(x + d, y - d);
-  ctx.lineTo(x + w + d, y - d);
-  ctx.lineTo(x + w + d, y - d + h);
-  ctx.lineTo(x + d, y - d + h);
-  ctx.closePath();
-  ctx.stroke();
-  ctx.setLineDash([]); // 清除虚线
-
-  /** ✅ 尺寸标注（可选） */
-  ctx.font = "12px sans-serif";
-  ctx.fillStyle = "#000";
-  ctx.textAlign = "center";
-
-  // width 标注
-  ctx.beginPath();
-  ctx.moveTo(x, y + h + 10);
-  ctx.lineTo(x + w, y + h + 10);
-  ctx.fillText(`${width}"`, x + w / 2, y + h + 24);
-
-  // height 标注
-  ctx.beginPath();
-  ctx.moveTo(x - 10, y);
-  ctx.lineTo(x - 10, y + h);
-  ctx.fillText(`${height}"`, x - 24, y + h / 2 + 4);
-
-  // depth 标注
-  ctx.beginPath();
-  ctx.moveTo(x + w + 10, y + h);
-  ctx.lineTo(x + w + d + 10, y + h - d);
-  ctx.fillText(`${depth}"`, x + w + d / 2 + 10, y + h - d / 2 + 4);
+    // depth 标注
+    ctx.beginPath();
+    ctx.moveTo(x + w + 10, y + h);
+    ctx.lineTo(x + w + d + 10, y + h - d);
+    ctx.fillText(`${depth}"`, x + w + d / 2 + 10, y + h - d / 2 + 4);
 
 
     // 层板分布
@@ -421,16 +429,14 @@ const drawBox = () => {
         console.log('Drawing face section', index, face);
         const heightRatio = face.height / totalUnitHeight;
         const sectionHeight = heightRatio * totalHeight;
- 
+
         // 背景颜色
-        ctx.strokeStyle = '#4caf50';
-        ctx.fillStyle = face.type.includes('drawer') ? '#ffe0b2' : '#bbdefb';
-        ctx.fillRect(x, currentY, w, sectionHeight);
+        //ctx.fillStyle = '#b0b0b0';
+        //ctx.fillRect(x, currentY, w, sectionHeight);
         ctx.strokeRect(x, currentY, w, sectionHeight);
 
         // 把手位置
         ctx.beginPath();
-        ctx.strokeStyle = '#000';
         if (face.type === 'drawer') {
             // 抽屉把手在中间
             ctx.moveTo(x + w / 2 - 10, currentY + sectionHeight / 2);
@@ -457,6 +463,7 @@ const drawBox = () => {
         ctx.stroke();
         currentY += sectionHeight;
     });
+    
 };
 
 
