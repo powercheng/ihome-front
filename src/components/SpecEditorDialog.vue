@@ -325,6 +325,7 @@ const drawBox = () => {
             ctx.closePath();
             ctx.stroke(); 
         } else if (panel.panelName === 'bottom') {
+            /** 
             ctx.setLineDash([5, 5]); // 虚线
             ctx.beginPath();
             ctx.moveTo(x, y + h);
@@ -334,16 +335,18 @@ const drawBox = () => {
             ctx.closePath();
             ctx.stroke();
             ctx.setLineDash([]); // 清除虚线
+            */
         } else if (panel.panelName === 'left') {
+            /** 
             ctx.setLineDash([5, 5]); // 虚线
             ctx.beginPath();
-            ctx.moveTo(x, y);
+            ctx.moveTo(x, y+h);
+            ctx.lineTo(x, y);
             ctx.lineTo(x + d, y - d);
             ctx.lineTo(x + d, y - d + h);
-            ctx.lineTo(x, y + h);
-            ctx.closePath();
             ctx.stroke();
             ctx.setLineDash([]); // 清除虚线
+            */
         } else if (panel.panelName === 'right') {
             ctx.beginPath();
             ctx.moveTo(x + w, y);
@@ -353,6 +356,7 @@ const drawBox = () => {
             ctx.closePath();
             ctx.stroke();
         } else if (panel.panelName === 'back') {
+            /** 
             ctx.setLineDash([5, 5]); // 虚线
             ctx.beginPath();
             ctx.moveTo(x, y);
@@ -362,6 +366,7 @@ const drawBox = () => {
             ctx.closePath();
             ctx.stroke();
             ctx.setLineDash([]); // 清除虚线
+            */
         }
     });
 
