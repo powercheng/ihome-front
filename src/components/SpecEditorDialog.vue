@@ -2,7 +2,7 @@
     <div>
         <el-dialog title="编辑参数" :model-value="dialogVisible" @update:modelValue="onClose" width="60%" @close="onClose">
             <div>
-                
+
                 <el-form label-width="80px" inline style="margin-bottom: 10px;">
                     <el-form-item label="Width">
                         <el-input-number v-model="localJsonData.width" :min="0" @change="recalculatePanels" />
@@ -50,7 +50,7 @@
                 </el-table>
 
                 <el-button type="success" icon="Plus" @click="addShelf">ADD shelves</el-button>
-                <el-table :data="localJsonData.box.shelves" style="width: 100%" size="small"
+                <el-table :data="localJsonData.shelves" style="width: 100%" size="small"
                     :header-cell-style="{ textAlign: 'center' }">
                     <el-table-column label="type">
                         <template #default="scope">
@@ -215,40 +215,40 @@ const recalculatePanels = () => {
             width: localJsonData.value.width,
             height: localJsonData.value.depth,
             depth: 0.75,
-            material: getPanel('top').material || 'plywood',
-            price: getPanel('top').price
+            material: getPanel('top panel').material || 'plywood',
+            price: getPanel('top panel').price
         },
         {
             code: 'bottom',
             width: localJsonData.value.width,
             height: localJsonData.value.depth,
             depth: 0.75,
-            material: getPanel('bottom').material || 'plywood',
-            price: getPanel('bottom').price
+            material: getPanel('bottom panel').material || 'plywood',
+            price: getPanel('bottom panel').price
         },
         {
             code: 'left',
             width: localJsonData.value.depth,
             height: localJsonData.value.height,
             depth: 0.75,
-            material: getPanel('left').material || 'plywood',
-            price: getPanel('left').price
+            material: getPanel('left panel').material || 'plywood',
+            price: getPanel('left panel').price
         },
         {
             code: 'right',
             width: localJsonData.value.depth,
             height: localJsonData.value.height,
             depth: 0.75,
-            material: getPanel('right').material || 'plywood',
-            price: getPanel('right').price
+            material: getPanel('right panel').material || 'plywood',
+            price: getPanel('right panel').price
         },
         {
             code: 'back',
             width: localJsonData.value.width,
             height: localJsonData.value.height,
             depth: 0.75,
-            material: getPanel('back').material || 'plywood',
-            price: getPanel('back').price
+            material: getPanel('back panel').material || 'plywood',
+            price: getPanel('back panel').price
         }
     ];
 };
@@ -264,7 +264,7 @@ const defaultSpec = (row) => ({
     materialId: row.materialId || '',
     box: [
         {
-            code: 'top',
+            code: 'bottom panel',
             width: row.width || 0,
             height: row.depth || 0,
             depth: 0.75,
@@ -272,33 +272,33 @@ const defaultSpec = (row) => ({
             price: 0
         },
         {
-            code: 'bottom',
+            code: 'left panel',
+            width: row.depth || 0,
+            height: row.height || 0,
+            depth: 0.75,
+            material: 'plywood',
+            price: 0
+        },
+        {
+            code: 'back panel',
+            width: row.width || 0,
+            height: row.height || 0,
+            depth: 0.75,
+            material: 'plywood',
+            price: 0
+        },
+        {
+            code: 'right panel',
+            width: row.depth || 0,
+            height: row.height || 0,
+            depth: 0.75,
+            material: 'plywood',
+            price: 0
+        },
+        {
+            code: 'top panel',
             width: row.width || 0,
             height: row.depth || 0,
-            depth: 0.75,
-            material: 'plywood',
-            price: 0
-        },
-        {
-            code: 'left',
-            width: row.depth || 0,
-            height: row.height || 0,
-            depth: 0.75,
-            material: 'plywood',
-            price: 0
-        },
-        {
-            code: 'right',
-            width: row.depth || 0,
-            height: row.height || 0,
-            depth: 0.75,
-            material: 'plywood',
-            price: 0
-        },
-        {
-            code: 'back',
-            width: row.width || 0,
-            height: row.height || 0,
             depth: 0.75,
             material: 'plywood',
             price: 0
@@ -324,10 +324,10 @@ const addShelf = () => {
     // 新增的层板
     const newShelf = {
         type: 'adjustable',
-        width: box.width || 0,
+        width: localJsonData.value.width || 0,
         height: shelfThickness,
-        depth: box.depth || 0,
-        position: box.height - gap - 1.5,
+        depth: localJsonData.value.depth || 0,
+        position: localJsonData.value.height - gap - 1.5,
         material: 'plywood',
         price: 0
     };
@@ -378,57 +378,62 @@ const drawBox = () => {
 
     const panels = localJsonData.value.box || [];
     panels.forEach(panel => {
-        if (panel.code === 'top') {
+        if (panel.code === 'top panel') {
             ctx.beginPath();
             ctx.moveTo(x, y);
             ctx.lineTo(x + d, y - d);
             ctx.lineTo(x + w + d, y - d);
             ctx.lineTo(x + w, y);
             ctx.closePath();
+            ctx.fillStyle = '#fff'; // 使用白色填充
+            ctx.fill();             // 填充白色背景，遮住下面线条
             ctx.stroke();
-        } else if (panel.code === 'bottom') {
-            /** 
-            ctx.setLineDash([5, 5]); // 虚线
-            ctx.beginPath();
-            ctx.moveTo(x, y + h);
-            ctx.lineTo(x + d, y + h - d);
-            ctx.lineTo(x + w + d, y + h - d);
-            ctx.lineTo(x + w, y + h);
-            ctx.closePath();
-            ctx.stroke();
-            ctx.setLineDash([]); // 清除虚线
-            */
-        } else if (panel.code === 'left') {
-            /** 
-            ctx.setLineDash([5, 5]); // 虚线
+        } else if (panel.code === 'bottom panel') {
             ctx.beginPath();
             ctx.moveTo(x, y+h);
+            ctx.lineTo(x + d, y - d+h);
+            ctx.lineTo(x + w + d, y - d+h);
+            ctx.lineTo(x + w, y+h);
+            ctx.closePath();
+            ctx.fillStyle = '#fff'; // 使用白色填充
+            ctx.fill();             // 填充白色背景，遮住下面线条
+            ctx.stroke();
+        } else if (panel.code === 'left panel') {
+            ctx.beginPath();
+            ctx.moveTo(x, y + h);
             ctx.lineTo(x, y);
             ctx.lineTo(x + d, y - d);
             ctx.lineTo(x + d, y - d + h);
+            ctx.closePath();
+            ctx.fillStyle = '#fff'; // 使用白色填充
+            ctx.fill();             // 填充白色背景，遮住下面线条
             ctx.stroke();
-            ctx.setLineDash([]); // 清除虚线
-            */
-        } else if (panel.code === 'right') {
+
+        } else if (panel.code === 'right panel') {
             ctx.beginPath();
             ctx.moveTo(x + w, y);
             ctx.lineTo(x + w + d, y - d);
             ctx.lineTo(x + w + d, y - d + h);
             ctx.lineTo(x + w, y + h);
             ctx.closePath();
+
+            ctx.fillStyle = '#fff'; // 使用白色填充
+            ctx.fill();             // 填充白色背景，遮住下面线条
             ctx.stroke();
-        } else if (panel.code === 'back') {
-            /** 
-            ctx.setLineDash([5, 5]); // 虚线
+        } else if (panel.code === 'back panel') {
+
+
             ctx.beginPath();
-            ctx.moveTo(x, y);
-            ctx.lineTo(x + w, y);
-            ctx.lineTo(x + w, y + h);
-            ctx.lineTo(x, y + h);
+            ctx.moveTo(x + d, y - d);
+            ctx.lineTo(x + d + w, y - d);
+            ctx.lineTo(x + d + w, y + h - d);
+            ctx.lineTo(x + d, y + h - d);
             ctx.closePath();
+
+            ctx.fillStyle = '#fff'; // 使用白色填充
+            ctx.fill();             // 填充白色背景，遮住下面线条
             ctx.stroke();
-            ctx.setLineDash([]); // 清除虚线
-            */
+
         }
     });
 
@@ -466,8 +471,7 @@ const drawBox = () => {
         const availableHeight = h - 2 * shelfThickness;
         const gap = availableHeight / (shelfCount + 1);
 
-        ctx.strokeStyle = '#1976d2';
-        ctx.fillStyle = '#1976d2';
+
         ctx.font = '12px sans-serif';
 
         for (let i = 1; i <= shelfCount; i++) {
@@ -494,13 +498,13 @@ const drawBox = () => {
 
     faces.forEach((face, index) => {
         console.log('Drawing face section', index, face);
-       // const heightRatio = face.height / totalUnitHeight;
+        // const heightRatio = face.height / totalUnitHeight;
         //const sectionHeight = heightRatio * totalHeight;
         const sectionHeight = face.height * scale; // 使用 face 的高度作为区块高度
 
         // 背景颜色
-        //ctx.fillStyle = '#b0b0b0';
-        //ctx.fillRect(x, currentY, w, sectionHeight);
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(x, currentY, w, sectionHeight);
         ctx.strokeRect(x, currentY, w, sectionHeight);
 
         // 把手位置
