@@ -2,22 +2,26 @@
     <div>
         <el-dialog title="编辑参数" :model-value="dialogVisible" @update:modelValue="onClose" width="60%" @close="onClose">
             <div>
-                <h3>Box</h3>
+                
                 <el-form label-width="80px" inline style="margin-bottom: 10px;">
                     <el-form-item label="Width">
-                        <el-input-number v-model="localJsonData.box.width" :min="0" @change="recalculatePanels" />
+                        <el-input-number v-model="localJsonData.width" :min="0" @change="recalculatePanels" />
                     </el-form-item>
                     <el-form-item label="Height">
-                        <el-input-number v-model="localJsonData.box.height" :min="0" @change="recalculatePanels" />
+                        <el-input-number v-model="localJsonData.height" :min="0" @change="recalculatePanels" />
                     </el-form-item>
                     <el-form-item label="Depth">
-                        <el-input-number v-model="localJsonData.box.depth" :min="0" @change="recalculatePanels" />
+                        <el-input-number v-model="localJsonData.depth" :min="0" @change="recalculatePanels" />
+                    </el-form-item>
+                    <el-form-item label="material">
+                        <el-autocomplete v-model="row.materialId" :fetch-suggestions="querySearch(3)"
+                            placeholder="input product code" style="width: 100%" />
                     </el-form-item>
                 </el-form>
-
-                <el-table :data="localJsonData.box.panels" style="width: 100%" size="small"
+                <h3>Box</h3>
+                <el-table :data="localJsonData.box" style="width: 100%" size="small"
                     :header-cell-style="{ textAlign: 'center' }">
-                    <el-table-column prop="panelName" label="position" width="100" align="center" />
+                    <el-table-column prop="code" label="position" width="100" align="center" />
                     <el-table-column label="width" align="center">
                         <template #default="scope">
                             {{ scope.row.width }}
@@ -101,9 +105,9 @@
                 <el-button type="success" icon="Plus" @click="addFace">add face section</el-button>
                 <el-table :data="localJsonData.face" style="width: 100%" size="small"
                     :header-cell-style="{ textAlign: 'center' }">
-                    <el-table-column label="type" width="150">
+                    <el-table-column label="code" width="150">
                         <template #default="scope">
-                            <el-select v-model="scope.row.type" placeholder="请选择">
+                            <el-select v-model="scope.row.code" placeholder="请选择">
                                 <el-option label="single left door" value="single left door" />
                                 <el-option label="single right door" value="single right door" />
                                 <el-option label="double door" value="double door" />
@@ -160,6 +164,7 @@
 <script setup>
 import { he } from 'element-plus/es/locales.mjs';
 import { ref, watch, computed } from 'vue';
+import { listProducts } from '@/api/product/products';
 const props = defineProps({
     modelValue: Boolean,
     row: Object
@@ -182,83 +187,138 @@ watch(() => props.modelValue, (val) => {
         } catch (e) {
             localJsonData.value = defaultSpec(props.row);
         }
+        console.log('localJsonData', localJsonData.value);
     }
 });
 
+// 搜索函数（根据type和code前缀匹配）
+const querySearch = (currentType) => async (queryString, cb) => {
+    try {
+        const response = await listProducts({
+            type: currentType,
+            code: queryString,
+        });
+        console.log('querySearch response', response);
+        cb(response.rows.map(item => ({
+            ...item,
+            value: item.code
+        })));
+    } catch (e) {
+        cb([]); // 防止失败时卡住
+    }
+};
+
 const recalculatePanels = () => {
-    const box = localJsonData.value.box;
-    localJsonData.value.box.panels = [
+    localJsonData.value.box = [
         {
-            panelName: 'top',
-            width: box.width,
-            height: box.depth,
+            code: 'top',
+            width: localJsonData.value.width,
+            height: localJsonData.value.depth,
             depth: 0.75,
-            material: getPanel('top').material,
+            material: getPanel('top').material || 'plywood',
             price: getPanel('top').price
         },
         {
-            panelName: 'bottom',
-            width: box.width,
-            height: box.depth,
+            code: 'bottom',
+            width: localJsonData.value.width,
+            height: localJsonData.value.depth,
             depth: 0.75,
-            material: getPanel('bottom').material,
+            material: getPanel('bottom').material || 'plywood',
             price: getPanel('bottom').price
         },
         {
-            panelName: 'left',
-            width: box.depth,
-            height: box.height,
+            code: 'left',
+            width: localJsonData.value.depth,
+            height: localJsonData.value.height,
             depth: 0.75,
-            material: getPanel('left').material,
+            material: getPanel('left').material || 'plywood',
             price: getPanel('left').price
         },
         {
-            panelName: 'right',
-            width: box.depth,
-            height: box.height,
+            code: 'right',
+            width: localJsonData.value.depth,
+            height: localJsonData.value.height,
             depth: 0.75,
-            material: getPanel('right').material,
+            material: getPanel('right').material || 'plywood',
             price: getPanel('right').price
         },
         {
-            panelName: 'back',
-            width: box.width,
-            height: box.height,
-            depth: 0.25,
-            material: getPanel('back').material,
+            code: 'back',
+            width: localJsonData.value.width,
+            height: localJsonData.value.height,
+            depth: 0.75,
+            material: getPanel('back').material || 'plywood',
             price: getPanel('back').price
         }
     ];
 };
 
 const getPanel = (name) => {
-    return localJsonData.value.box.panels?.find(p => p.panelName === name) || {};
+    return localJsonData.value.box.find(p => p.code === name) || {};
 };
 
 const defaultSpec = (row) => ({
-    box: {
-        width: row.width || 0,
-        height: row.height || 0,
-        depth: row.depth || 0,
-        material: 'plywood',
-        panels: [],
-        shelves: []
-    },
+    width: row.width || 0,
+    height: row.height || 0,
+    depth: row.depth || 0,
+    materialId: row.materialId || '',
+    box: [
+        {
+            code: 'top',
+            width: row.width || 0,
+            height: row.depth || 0,
+            depth: 0.75,
+            material: 'plywood',
+            price: 0
+        },
+        {
+            code: 'bottom',
+            width: row.width || 0,
+            height: row.depth || 0,
+            depth: 0.75,
+            material: 'plywood',
+            price: 0
+        },
+        {
+            code: 'left',
+            width: row.depth || 0,
+            height: row.height || 0,
+            depth: 0.75,
+            material: 'plywood',
+            price: 0
+        },
+        {
+            code: 'right',
+            width: row.depth || 0,
+            height: row.height || 0,
+            depth: 0.75,
+            material: 'plywood',
+            price: 0
+        },
+        {
+            code: 'back',
+            width: row.width || 0,
+            height: row.height || 0,
+            depth: 0.75,
+            material: 'plywood',
+            price: 0
+        }
+    ],
+    shelves: [],
     face: [],
     Accessories: []
 });
 
 // === 核心逻辑略 ===
 const addShelf = () => {
-    const box = localJsonData.value.box;
-    const shelfCount = box.shelves.length + 1;
+    const shelfCount = localJsonData.value.shelves.length + 1;
     const shelfThickness = 0.75;
-    const totalGap = box.height - shelfThickness * (2 + shelfCount);
+    const totalGap = localJsonData.value.height - shelfThickness * (2 + shelfCount);
     const gap = totalGap / (shelfCount + 1);
 
     // 重新计算已有层板的 position
     for (let i = 0; i < shelfCount - 1; i++) {
-        box.shelves[i].position = (shelfThickness + gap) * (i + 1);
+        localJsonData.value.shelves[i].position = (shelfThickness + gap) * (i + 1);
     }
 
     // 新增的层板
@@ -272,17 +332,17 @@ const addShelf = () => {
         price: 0
     };
 
-    box.shelves.push(newShelf);
+    localJsonData.value.shelves.push(newShelf);
 };
 
 const removeShelf = (index) => {
-    localJsonData.value.box.shelves.splice(index, 1);
+    localJsonData.value.shelves.splice(index, 1);
 };
 
 const addFace = () => {
     localJsonData.value.face.push({
-        type: '',
-        width: localJsonData.value.box.width,
+        code: '',
+        width: localJsonData.value.width,
         height: 0,
         depth: 0.75,
         material: '',
@@ -298,7 +358,9 @@ const canvas = ref(null);
 const drawBox = () => {
     const ctx = canvas.value?.getContext('2d');
     if (!ctx) return;
-    const { width, height, depth } = localJsonData.value.box;
+    const { width, height, depth } = localJsonData.value;
+    console.log('Drawing box with dimensions:', width, height, depth);
+    console.log(localJsonData.value);
 
     // 清空
     ctx.clearRect(0, 0, canvas.value.width, canvas.value.height);
@@ -312,19 +374,19 @@ const drawBox = () => {
     const w = width * scale;
     const h = height * scale;
     const d = depth * scale * 0.5; // 斜角表示深度
-    
 
-    const panels = localJsonData.value.box.panels || [];
+
+    const panels = localJsonData.value.box || [];
     panels.forEach(panel => {
-        if (panel.panelName === 'top') {
+        if (panel.code === 'top') {
             ctx.beginPath();
             ctx.moveTo(x, y);
             ctx.lineTo(x + d, y - d);
             ctx.lineTo(x + w + d, y - d);
             ctx.lineTo(x + w, y);
             ctx.closePath();
-            ctx.stroke(); 
-        } else if (panel.panelName === 'bottom') {
+            ctx.stroke();
+        } else if (panel.code === 'bottom') {
             /** 
             ctx.setLineDash([5, 5]); // 虚线
             ctx.beginPath();
@@ -336,7 +398,7 @@ const drawBox = () => {
             ctx.stroke();
             ctx.setLineDash([]); // 清除虚线
             */
-        } else if (panel.panelName === 'left') {
+        } else if (panel.code === 'left') {
             /** 
             ctx.setLineDash([5, 5]); // 虚线
             ctx.beginPath();
@@ -347,7 +409,7 @@ const drawBox = () => {
             ctx.stroke();
             ctx.setLineDash([]); // 清除虚线
             */
-        } else if (panel.panelName === 'right') {
+        } else if (panel.code === 'right') {
             ctx.beginPath();
             ctx.moveTo(x + w, y);
             ctx.lineTo(x + w + d, y - d);
@@ -355,7 +417,7 @@ const drawBox = () => {
             ctx.lineTo(x + w, y + h);
             ctx.closePath();
             ctx.stroke();
-        } else if (panel.panelName === 'back') {
+        } else if (panel.code === 'back') {
             /** 
             ctx.setLineDash([5, 5]); // 虚线
             ctx.beginPath();
@@ -398,7 +460,7 @@ const drawBox = () => {
 
 
     // 层板分布
-    const shelfCount = localJsonData.value.box.shelves.length;
+    const shelfCount = localJsonData.value.shelves.length;
     if (shelfCount > 0) {
         const shelfThickness = 0.75 * scale;
         const availableHeight = h - 2 * shelfThickness;
@@ -428,12 +490,13 @@ const drawBox = () => {
     let currentY = y;
     const totalHeight = h;
     const faces = localJsonData.value.face;
-    const totalUnitHeight = faces.reduce((sum, f) => sum + f.height, 0);
+    //const totalUnitHeight = faces.reduce((sum, f) => sum + f.height, 0);
 
     faces.forEach((face, index) => {
         console.log('Drawing face section', index, face);
-        const heightRatio = face.height / totalUnitHeight;
-        const sectionHeight = heightRatio * totalHeight;
+       // const heightRatio = face.height / totalUnitHeight;
+        //const sectionHeight = heightRatio * totalHeight;
+        const sectionHeight = face.height * scale; // 使用 face 的高度作为区块高度
 
         // 背景颜色
         //ctx.fillStyle = '#b0b0b0';
@@ -442,19 +505,19 @@ const drawBox = () => {
 
         // 把手位置
         ctx.beginPath();
-        if (face.type === 'drawer') {
+        if (face.code === 'drawer') {
             // 抽屉把手在中间
             ctx.moveTo(x + w / 2 - 10, currentY + sectionHeight / 2);
             ctx.lineTo(x + w / 2 + 10, currentY + sectionHeight / 2);
-        } else if (face.type === 'single left door') {
+        } else if (face.code === 'single left door') {
             // 把手在右边中间
             ctx.moveTo(x + w - 10, currentY + sectionHeight / 2 - 10);
             ctx.lineTo(x + w - 10, currentY + sectionHeight / 2 + 10);
-        } else if (face.type === 'single right door') {
+        } else if (face.code === 'single right door') {
             // 把手在左边中间
             ctx.moveTo(x + 10, currentY + sectionHeight / 2 - 10);
             ctx.lineTo(x + 10, currentY + sectionHeight / 2 + 10);
-        } else if (face.type === 'double door') {
+        } else if (face.code === 'double door') {
             // 左右门把手
             ctx.moveTo(x + w / 2 - 12, currentY + sectionHeight / 2 - 10);
             ctx.lineTo(x + w / 2 - 12, currentY + sectionHeight / 2 + 10);
@@ -468,7 +531,7 @@ const drawBox = () => {
         ctx.stroke();
         currentY += sectionHeight;
     });
-    
+
 };
 
 
@@ -489,9 +552,6 @@ const onSave = () => {
     const updated = {
         ...currentRow.value,
         specification: JSON.stringify(localJsonData.value),
-        width: localJsonData.value.box.width,
-        height: localJsonData.value.box.height,
-        depth: localJsonData.value.box.depth
     };
     emits('save', updated);
     emits('update:modelValue', false);
