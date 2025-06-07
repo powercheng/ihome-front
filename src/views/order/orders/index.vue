@@ -1,13 +1,8 @@
 <template>
   <div class="app-container">
-    <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
+    <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="100px">
       <el-form-item label="customer po" prop="customerPo">
-        <el-input
-          v-model="queryParams.customerPo"
-          placeholder="请输入customer po"
-          clearable
-          @keyup.enter="handleQuery"
-        />
+        <el-input v-model="queryParams.customerPo" placeholder="请输入customer po" clearable @keyup.enter="handleQuery" />
       </el-form-item>
       <el-form-item>
         <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
@@ -17,42 +12,12 @@
 
     <el-row :gutter="10" class="mb8">
       <el-col :span="1.5">
-        <el-button
-          type="primary"
-          plain
-          icon="Plus"
-          @click="handleAdd"
-          v-hasPermi="['order:orders:add']"
-        >新增</el-button>
+        <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete"
+          v-hasPermi="['order:orders:remove']">删除</el-button>
       </el-col>
       <el-col :span="1.5">
-        <el-button
-          type="success"
-          plain
-          icon="Edit"
-          :disabled="single"
-          @click="handleUpdate"
-          v-hasPermi="['order:orders:edit']"
-        >修改</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button
-          type="danger"
-          plain
-          icon="Delete"
-          :disabled="multiple"
-          @click="handleDelete"
-          v-hasPermi="['order:orders:remove']"
-        >删除</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button
-          type="warning"
-          plain
-          icon="Download"
-          @click="handleExport"
-          v-hasPermi="['order:orders:export']"
-        >导出</el-button>
+        <el-button type="warning" plain icon="Download" @click="handleExport"
+          v-hasPermi="['order:orders:export']">导出</el-button>
       </el-col>
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
@@ -76,7 +41,7 @@
       </el-table-column>
       <el-table-column label="status" align="center" prop="status">
         <template #default="scope">
-          <dict-tag :options="order_status" :value="scope.row.status"/>
+          <dict-tag :options="order_status" :value="scope.row.status" />
         </template>
       </el-table-column>
       <el-table-column label="note" align="center" prop="note" />
@@ -88,20 +53,18 @@
       </el-table-column>
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
-          <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['order:orders:edit']">修改</el-button>
-          <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['order:orders:remove']">删除</el-button>
+          <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
+            v-hasPermi="['order:orders:edit']">修改</el-button>
+          <el-button link type="primary" icon="Edit" @click="openOrderDetail(scope.row)">detail</el-button>
+          <el-button link type="success" @click="openSplitDialog(scope.row)">拆单</el-button>
+          <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)"
+            v-hasPermi="['order:orders:remove']">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
-    
-    <pagination
-      v-show="total>0"
-      :total="total"
-      v-model:page="queryParams.pageNum"
-      v-model:limit="queryParams.pageSize"
-      @pagination="getList"
-    />
 
+    <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
+      v-model:limit="queryParams.pageSize" @pagination="getList" />
     <!-- 添加或修改orders对话框 -->
     <el-dialog :title="title" v-model="open" width="500px" append-to-body>
       <el-form ref="ordersRef" :model="form" :rules="rules" label-width="80px">
@@ -118,28 +81,18 @@
           <el-input v-model="form.deliveryAddress" placeholder="请输入delivery address" />
         </el-form-item>
         <el-form-item label="estimated ship date" prop="estimatedShipDate">
-          <el-date-picker clearable
-            v-model="form.estimatedShipDate"
-            type="date"
-            value-format="YYYY-MM-DD"
+          <el-date-picker clearable v-model="form.estimatedShipDate" type="date" value-format="YYYY-MM-DD"
             placeholder="请选择estimated ship date">
           </el-date-picker>
         </el-form-item>
         <el-form-item label="ship date" prop="shipDate">
-          <el-date-picker clearable
-            v-model="form.shipDate"
-            type="date"
-            value-format="YYYY-MM-DD"
+          <el-date-picker clearable v-model="form.shipDate" type="date" value-format="YYYY-MM-DD"
             placeholder="请选择ship date">
           </el-date-picker>
         </el-form-item>
         <el-form-item label="status" prop="status">
           <el-radio-group v-model="form.status">
-            <el-radio
-              v-for="dict in order_status"
-              :key="dict.value"
-              :label="dict.value"
-            >{{dict.label}}</el-radio>
+            <el-radio v-for="dict in order_status" :key="dict.value" :label="dict.value">{{ dict.label }}</el-radio>
           </el-radio-group>
         </el-form-item>
         <el-form-item label="note" prop="note">
@@ -153,14 +106,63 @@
         </div>
       </template>
     </el-dialog>
+
+    <el-dialog :model-value="detailVisible" title="Order Detail" width="80%" @close="onClose">
+      <el-descriptions :column="3" size="small" border title="Order Info">
+        <el-descriptions-item label="Order ID">{{ detailData.order.id }}</el-descriptions-item>
+        <el-descriptions-item label="Customer PO">{{ detailData.order.customerPo }}</el-descriptions-item>
+        <el-descriptions-item label="Delivery Name">{{ detailData.order.deliveryName }}</el-descriptions-item>
+        <el-descriptions-item label="Delivery Address">{{ detailData.order.deliveryAddress }}</el-descriptions-item>
+        <el-descriptions-item label="Note">{{ detailData.order.note }}</el-descriptions-item>
+        <el-descriptions-item label="Created By">{{ detailData.order.createBy }}</el-descriptions-item>
+      </el-descriptions>
+      <el-descriptions :column="4" size="small" border title="Quote Info" style="margin-top: 20px;">
+        <el-descriptions-item label="Quote ID">{{ detailData.quote.id }}</el-descriptions-item>
+        <el-descriptions-item label="Subtotal">{{ detailData.quote.subtotal }}</el-descriptions-item>
+        <el-descriptions-item label="Tax">{{ detailData.quote.tax }}</el-descriptions-item>
+        <el-descriptions-item label="Total">{{ detailData.quote.total }}</el-descriptions-item>
+      </el-descriptions>
+      <el-divider content-position="left">Product List</el-divider>
+      <el-table :data="detailData.quote.products" border size="small" style="width: 100%;">
+        <el-table-column type="index" label="#" width="50" />
+        <el-table-column prop="code" label="Product Code" />
+        <el-table-column prop="description" label="description" />
+        <el-table-column prop="material" label="Material" />
+        <el-table-column prop="width" label="Width" />
+        <el-table-column prop="height" label="Height" />
+        <el-table-column prop="depth" label="Depth" />
+      </el-table>
+    </el-dialog>
+
+    <PanelSizeDialog v-model="splitDialogVisible" :row="currentRow" />
+
   </div>
 </template>
 
 <script setup name="Orders">
 import { listOrders, getOrders, delOrders, addOrders, updateOrders } from "@/api/order/orders";
+import { getQuote } from "@/api/order/quote";
+import PanelSizeDialog from "@/components/PanelSizeDialog.vue";
 
 const { proxy } = getCurrentInstance();
 const { order_status } = proxy.useDict('order_status');
+
+const currentRow = ref(null);
+const splitDialogVisible = ref(false);
+const openSplitDialog = async (row) => {
+  try {
+    const res = await getQuote(row.quoteId); 
+    currentRow.value = res.data; 
+    // 如果你只想传 products 数组：
+    currentRow.value = res.data.products ? JSON.parse(res.data.products) : [];
+    console.log('Fetched quote:', currentRow.value);
+    splitDialogVisible.value = true;
+  } catch (e) {
+    console.error('Failed to fetch quote:', e);
+    ElMessage.error('获取报价信息失败');
+  }
+};
+
 
 const ordersList = ref([]);
 const open = ref(false);
@@ -268,6 +270,40 @@ function handleUpdate(row) {
   });
 }
 
+const detailData = reactive({
+  order: null,
+  quote: {
+    id: null,
+    subtotal: 0,
+    tax: 0,
+    total: 0,
+    products: []
+  }
+});
+
+const detailVisible = ref(false);
+async function openOrderDetail(row) {
+  detailData.order = row;
+  if (row.quoteId) {
+    const res = await getQuote(row.quoteId);
+    detailData.quote = {
+      ...res.data,
+      products: res.data.products ? JSON.parse(res.data.products) : []
+    };
+  } else {
+    detailData.quote = {
+      id: null,
+      subtotal: 0,
+      tax: 0,
+      total: 0,
+      products: []
+    };
+  }
+  detailVisible.value = true;
+}
+
+
+
 /** 提交按钮 */
 function submitForm() {
   proxy.$refs["ordersRef"].validate(valid => {
@@ -289,15 +325,18 @@ function submitForm() {
   });
 }
 
+
+
+
 /** 删除按钮操作 */
 function handleDelete(row) {
   const _ids = row.id || ids.value;
-  proxy.$modal.confirm('是否确认删除orders编号为"' + _ids + '"的数据项？').then(function() {
+  proxy.$modal.confirm('是否确认删除orders编号为"' + _ids + '"的数据项？').then(function () {
     return delOrders(_ids);
   }).then(() => {
     getList();
     proxy.$modal.msgSuccess("删除成功");
-  }).catch(() => {});
+  }).catch(() => { });
 }
 
 /** 导出按钮操作 */

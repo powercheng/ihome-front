@@ -162,7 +162,6 @@
 </template>
 
 <script setup>
-import { he } from 'element-plus/es/locales.mjs';
 import { ref, watch, computed } from 'vue';
 import { listProducts } from '@/api/product/products';
 const props = defineProps({

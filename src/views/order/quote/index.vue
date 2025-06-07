@@ -32,7 +32,8 @@
       </el-table-column>
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
-          <el-button type="primary" size="small" @click="openConvertDialog(scope.row)">order</el-button>
+          <el-button type="primary" size="small" @click="openConvertDialog(scope.row)">{{ scope.row.orderId ? 'View Order' :
+            'Convert to Order' }}</el-button>
           <el-button link type="primary" icon="Edit"
             @click="$router.push({ path: '/order/quote/add', query: { id: scope.row.id } })"
             v-hasPermi="['order:quote:edit']">修改</el-button>
@@ -42,8 +43,8 @@
       </el-table-column>
     </el-table>
 
-    <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize"
-      @pagination="getList" />
+    <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
+      v-model:limit="queryParams.pageSize" @pagination="getList" />
 
 
     <el-dialog v-model="convertDialogVisible" title="make a order" width="600px">
@@ -97,6 +98,7 @@
 <script setup name="Quote">
 import { listQuote, getQuote, delQuote, addQuote, updateQuote } from "@/api/order/quote";
 import { addOrders } from '@/api/order/orders';
+import { get } from "@vueuse/core";
 
 
 
@@ -148,6 +150,7 @@ function cancel() {
 function reset() {
   form.value = {
     id: null,
+    orderId: null,
     customerPo: null,
     products: null,
     subtotal: null,
@@ -198,8 +201,16 @@ const orderForm = reactive({
   note: ''
 });
 
+
+const route = useRouter();
+
 const openConvertDialog = (quote) => {
-  console.log(quote);
+  console.log('quote', quote);
+  if (quote.orderId) {
+    // 已经转为 order，直接跳转到该 order 的编辑页
+    route.push(`/order/orders`);
+    return;
+  }
 
   // 自动带入 customer_po
   orderForm.quoteId = quote.id;
@@ -218,6 +229,8 @@ const confirmConvert = () => {
   }
   addOrders(orderForm).then(() => {
     convertDialogVisible.value = false;
+    proxy.$modal.msgSuccess("order created successfully");
+    getList();
   });
 };
 

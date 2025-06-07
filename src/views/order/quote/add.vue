@@ -115,6 +115,7 @@ const handleSave = (updatedRow) => {
 const route = useRouter();
 const isEdit = ref(false);
 const quoteForm = reactive({
+  id: null,
   customerPo: '',
   products: [],
   subtotal: 0,
@@ -129,6 +130,7 @@ const fetchQuoteById = async (id) => {
   try {
     const response = await getQuote(id);
     console.log('response', response);
+    quoteForm.id = response.data.id;
     quoteForm.customerPo = response.data.customerPo;
     quoteForm.subtotal = response.data.subtotal;
     quoteForm.tax = response.data.tax;
@@ -152,7 +154,6 @@ const onTypeChange = (index) => {
 };
 
 onMounted(() => {
-  console.log(route);
   const id = route.currentRoute.value.query.id;
 
   if (id) {

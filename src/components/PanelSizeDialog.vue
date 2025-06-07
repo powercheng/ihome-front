@@ -1,5 +1,5 @@
 <template>
-  <el-dialog :model-value="visible" title="拆单标签预览" width="90%" @close="onClose" :row="currentRow">
+  <el-dialog :model-value="visible" title="拆单标签预览" width="90%" @close="onClose">
 
     <el-button type="primary" @click="printLabels" style="margin-bottom: 10px;">打印标签</el-button>
 
@@ -97,7 +97,49 @@ function getPanelCell(panel, spec, number) {
       { x: spec.depth / 2, y: -spec.depth / 2 + spec.height },
     ];
   }
-  console.log('getPanelCell', cell);
+  return cell;
+}
+
+function getFaceCell(face, spec, number) {
+  console.log(face, spec, number);
+  const cell = {};
+  cell.specification = spec;
+  cell.code = face.code;
+  cell.width = face.width;
+  cell.height = face.height;
+  cell.depth = face.depth;
+  cell.material = face.material;
+  cell.number = number;
+  if (face.code === "single left door") {
+    cell.points = [
+      { x: 0, y: 0 },
+      { x: face.width, y: 0 },
+      { x: face.width, y: face.height },
+      { x: 0, y: face.height }
+    ];
+  } else if (face.code === "single right door") {
+    cell.points = [
+      { x: spec.width - face.width, y: 0 },
+      { x: spec.width, y: 0 },
+      { x: spec.width, y: face.height },
+      { x: spec.width - face.width, y: face.height }
+    ];
+  } else if (face.code === "double door") {
+    const halfWidth = face.width / 2;
+    cell.points = [
+      { x: spec.width / 2 - halfWidth, y: 0 },
+      { x: spec.width / 2 + halfWidth, y: 0 },
+      { x: spec.width / 2 + halfWidth, y: face.height },
+      { x: spec.width / 2 - halfWidth, y: face.height }
+    ];
+  } else if (face.code === "drawer") {
+    cell.points = [
+      { x: (spec.width - face.width) / 2, y: 0 },
+      { x: (spec.width + face.width) / 2, y: 0 },
+      { x: (spec.width + face.width) / 2, y: face.height },
+      { x: (spec.width - face.width) / 2, y: face.height }
+    ];
+  }
   return cell;
 }
 
@@ -111,18 +153,17 @@ const flatCells = computed(() => {
         cells.push(getPanelCell(panel, spec, index + 1));
       }
     });
-    /** 
+ /** 
     spec.shelves?.forEach((shelf, index) => {
       if (shelf.material != '' && shelf.material != 'plywood') {
         cells.push({ ...spec, type: 'shelf', idx: index, data: shelf });
       }
     });
+    */
     spec.face?.forEach((face, index) => {
-      if (face.material != '' && face.material != 'plywood') {
-        cells.push({ ...spec, type: 'face', idx: index, data: face });
-      }
+      cells.push(getFaceCell(face, spec, index + 1));
     });
- */
+ 
   });
   return cells;
 });
@@ -137,10 +178,8 @@ function registerCanvas(cell, el) {
 
 
 const drawBox = (el, cell) => {
-  console.log('Drawing box for cell:', cell);
   const ctx = el.getContext('2d');
   if (!ctx) return;
-  console.log('spec:', cell.specification);
   const { width, height, depth } = cell.specification;
 
 
@@ -174,7 +213,6 @@ const drawBox = (el, cell) => {
 
   const x = offsetX;
   const y = offsetY;
-  console.log('Drawing box at:', x, y, 'with scale:', scale);
 
   const w = width * scale;
   const h = height * scale;
@@ -213,7 +251,6 @@ const drawBox = (el, cell) => {
       ctx.fillStyle = '#fff'; // 使用白色填充
       ctx.fill();             // 填充白色背景，遮住下面线条
       ctx.stroke();
-
     } else if (panel.code === 'right panel') {
       ctx.beginPath();
       ctx.moveTo(x + w, y);
@@ -221,29 +258,21 @@ const drawBox = (el, cell) => {
       ctx.lineTo(x + w + d, y - d + h);
       ctx.lineTo(x + w, y + h);
       ctx.closePath();
-
       ctx.fillStyle = '#fff'; // 使用白色填充
       ctx.fill();             // 填充白色背景，遮住下面线条
       ctx.stroke();
     } else if (panel.code === 'back panel') {
-
-
       ctx.beginPath();
       ctx.moveTo(x + d, y - d);
       ctx.lineTo(x + d + w, y - d);
       ctx.lineTo(x + d + w, y + h - d);
       ctx.lineTo(x + d, y + h - d);
       ctx.closePath();
-
       ctx.fillStyle = '#fff'; // 使用白色填充
       ctx.fill();             // 填充白色背景，遮住下面线条
       ctx.stroke();
-
     }
   });
-
-
-
 
   /** ✅ 尺寸标注（可选） */
   ctx.font = "18px sans-serif";
@@ -275,8 +304,6 @@ const drawBox = (el, cell) => {
     const shelfThickness = 0.75 * scale;
     const availableHeight = h - 2 * shelfThickness;
     const gap = availableHeight / (shelfCount + 1);
-
-
     ctx.font = '12px sans-serif';
 
     for (let i = 1; i <= shelfCount; i++) {
@@ -285,7 +312,6 @@ const drawBox = (el, cell) => {
       ctx.moveTo(x, shelfY);
       ctx.lineTo(x + w, shelfY);
       ctx.stroke();
-
       // 斜线表示厚度
       ctx.beginPath();
       ctx.moveTo(x + w, shelfY);
@@ -327,7 +353,6 @@ const drawBox = (el, cell) => {
       ctx.lineTo(x + w / 2 - 12, currentY + sectionHeight / 2 + 10);
       ctx.moveTo(x + w / 2 + 12, currentY + sectionHeight / 2 - 10);
       ctx.lineTo(x + w / 2 + 12, currentY + sectionHeight / 2 + 10);
-
       // 中间分隔线（门缝）
       ctx.moveTo(x + w / 2, currentY);
       ctx.lineTo(x + w / 2, currentY + sectionHeight);
@@ -337,7 +362,6 @@ const drawBox = (el, cell) => {
   });
 
   if (cell.points?.length === 4) {
-    console.log('Drawing panel:', cell.points);
     ctx.beginPath();
     ctx.moveTo(x + cell.points[0].x * scale, y + cell.points[0].y * scale);
     ctx.lineTo(x + cell.points[1].x * scale, y + cell.points[1].y * scale);

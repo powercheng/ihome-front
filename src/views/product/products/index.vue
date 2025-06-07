@@ -59,7 +59,7 @@
           <el-button type="primary" size="small" @click="openEditor(scope.row)">编辑</el-button>
         </template>
       </el-table-column>
-      <el-table-column label="供应商" align="center" prop="supplierId" :formatter="formatSupplierName" min-width="80">
+      <el-table-column label="供应商" align="center" prop="supplierId"  min-width="80">
         <template #default="scope">
           <dict-tag :options="supplier" :value="scope.row.supplierId" />
         </template>
@@ -119,7 +119,8 @@
         </el-form-item>
         <el-form-item label="供应商" prop="supplierId">
           <el-select  v-model="form.supplierId" placeholder="请选择供应商">
-            <el-option v-for="dict in supplier" :key="dict.value" :label="dict.label" :value="Number(dict.value)"></el-option>
+            <el-option v-for="dict in supplier" :key="dict.value" :label="dict.label"
+              :value="dict.value"></el-option>
           </el-select>
         </el-form-item>
       </el-form>
@@ -320,10 +321,6 @@ function handleExport() {
   }, `products_${new Date().getTime()}.xlsx`)
 }
 
-function formatSupplierName(row) {
-  const sp = this.supplier.find(item => item.id === row.supplierId);
-  return sp ? sp.name : '';
-}
 
 
 getList();
